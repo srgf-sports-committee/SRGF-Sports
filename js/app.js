@@ -380,6 +380,76 @@
       '</tbody></table></div>';
   }
 
+  function insightRows(sport) {
+    const headers = Array.isArray(sport.headers) ? sport.headers : [];
+    return (sport.rows || []).map(row => {
+      const item = {};
+      headers.forEach((h, i) => item[h] = Array.isArray(row) ? (row[i] ?? "") : "");
+      return item;
+    }).filter(row => String(row["Player ID"] || "").trim() && String(row["Player Name"] || "").trim());
+  }
+
+  function renderInsights() {
+    const kpis = $("#insights-highlights");
+    const topFive = $("#insights-top-five");
+    const combined = $("#insights-combined");
+    if (!kpis || !topFive || !combined) return;
+    if (!rankingSports.length) {
+      kpis.innerHTML = '<div class="insight-empty">Rankings will appear here once the sports rating tabs are available.</div>';
+      topFive.innerHTML = "";
+      combined.innerHTML = "";
+      return;
+    }
+    const format = $("#insights-format-filter")?.value || "Singles";
+    const eloKey = format + " Elo";
+    const matchesKey = format + " Matches";
+    const winsKey = format + " Wins";
+    const lossesKey = format + " Losses";
+    const drawsKey = format + " Draws";
+    const playerMap = new Map();
+    let highest = {name:"—", sport:"", elo:-Infinity};
+    let matchAppearances = 0;
+    const sportCards = rankingSports.map((sport, sportIndex) => {
+      const rows = insightRows(sport).map(row => {
+        const elo = Number(row[eloKey] || 1000);
+        const matches = Number(row[matchesKey] || 0);
+        if (elo > highest.elo) highest = {name:row["Player Name"],sport:sport.name || sport.sheetName,elo};
+        matchAppearances += matches;
+        const id = String(row["Player ID"]);
+        if (!playerMap.has(id)) playerMap.set(id, {id,name:row["Player Name"],eloTotal:0,sports:[],matches:0,wins:0,losses:0,draws:0});
+        const p = playerMap.get(id);
+        p.name = p.name || row["Player Name"];
+        p.eloTotal += elo;
+        p.sports.push({name:sport.name || String(sport.sheetName || "").replace(/-Rating$/i,""),elo});
+        p.matches += matches;
+        p.wins += Number(row[winsKey] || 0);
+        p.losses += Number(row[lossesKey] || 0);
+        p.draws += Number(row[drawsKey] || 0);
+        return {id,name:row["Player Name"],elo,matches,wins:Number(row[winsKey]||0),losses:Number(row[lossesKey]||0),draws:Number(row[drawsKey]||0)};
+      }).sort((a,b)=>b.elo-a.elo || a.name.localeCompare(b.name));
+      const label = sport.name || String(sport.sheetName || "").replace(/-Rating$/i,"");
+      const code = String(sport.code || sport.sheetName || "").replace(/-Rating$/i,"").toLowerCase().replace(/[^a-z]/g,"");
+      const icons = ["🏓","🥒","🏸","🎾"];
+      return '<article class="sport-leader-card sport-tone-' + (sportIndex%4+1) + '"><div class="sport-leader-head"><span class="sport-leader-icon">' + icons[sportIndex%4] + '</span><div><p>' + escapeHtml(code.toUpperCase()) + ' LEADERBOARD</p><h4>' + escapeHtml(label) + '</h4></div><span class="leaderboard-format">' + escapeHtml(format) + '</span></div>' +
+        (rows.length ? '<ol class="top-five-list">' + rows.slice(0,5).map((r,i)=>'<li><span class="leader-rank">' + (i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1).padStart(2,"0")) + '</span><span class="leader-player"><strong>' + escapeHtml(r.name) + '</strong><small>' + escapeHtml(r.id) + ' · ' + r.matches + ' matches</small></span><strong class="leader-elo">' + escapeHtml(r.elo) + '</strong></li>').join("") + '</ol>' : '<div class="insight-empty">No players in this rating table yet.</div>') +
+        '<div class="sport-leader-footer">Top ' + Math.min(5,rows.length) + ' by ' + escapeHtml(format) + ' Elo</div></article>';
+    });
+    const players = Array.from(playerMap.values()).map(p=>({...p,average:p.sports.length?p.eloTotal/p.sports.length:0})).sort((a,b)=>b.average-a.average || b.sports.length-a.sports.length || a.name.localeCompare(b.name));
+    const totalPlayers = playerMap.size;
+    const totalMatches = Math.round(matchAppearances / (format === "Doubles" ? 4 : 2));
+    kpis.innerHTML =
+      '<article class="insight-kpi kpi-players"><span class="kpi-icon">👥</span><small>RATED PLAYERS</small><strong>' + totalPlayers + '</strong><span>Unique players across sports</span></article>' +
+      '<article class="insight-kpi kpi-sports"><span class="kpi-icon">🏅</span><small>SPORTS TRACKED</small><strong>' + rankingSports.length + '</strong><span>Active Elo leaderboards</span></article>' +
+      '<article class="insight-kpi kpi-matches"><span class="kpi-icon">🔥</span><small>MATCHES RECORDED</small><strong>' + totalMatches + '</strong><span>' + escapeHtml(format) + ' matches, estimated from player records</span></article>' +
+      '<article class="insight-kpi kpi-elo"><span class="kpi-icon">⚡</span><small>HIGHEST ' + escapeHtml(format.toUpperCase()) + ' ELO</small><strong>' + (Number.isFinite(highest.elo)?escapeHtml(highest.elo):"—") + '</strong><span>' + escapeHtml(highest.name) + (highest.sport?' · '+escapeHtml(highest.sport):'') + '</span></article>';
+    topFive.innerHTML = sportCards.join("");
+    const medals = ["🥇","🥈","🥉"];
+    const leaders = players.slice(0,10);
+    combined.innerHTML = leaders.length ? '<div class="combined-table-wrap"><table class="combined-table"><thead><tr><th>Rank</th><th>Player</th><th>Player ID</th><th>Average Elo</th><th>Sports rated</th><th>Matches</th></tr></thead><tbody>' +
+      leaders.map((p,i)=>'<tr><td><span class="combined-rank ' + (i<3?'podium':'') + '">' + (medals[i] || (i+1)) + '</span></td><td><strong>' + escapeHtml(p.name) + '</strong></td><td>' + escapeHtml(p.id) + '</td><td><strong>' + p.average.toFixed(1) + '</strong></td><td><span class="sport-coverage">' + p.sports.length + ' / ' + rankingSports.length + '</span></td><td>' + p.matches + '</td></tr>').join("") +
+      '</tbody></table></div>' : '<div class="insight-empty">No combined ranking data available yet.</div>';
+  }
+
   function wireRemoveRankingRows() {
     document.querySelectorAll("[data-remove-row]").forEach(button => {
       button.onclick = () => button.closest("tr").remove();
@@ -399,6 +469,7 @@
         activeRankingSheet = "__ALL__";
       }
       renderRankings();
+      renderInsights();
       status.textContent = "Rankings refreshed.";
     } catch (error) {
       status.textContent = "Rankings could not be loaded. The SRGF Sports Apps Script needs the rankings read endpoint.";
@@ -446,6 +517,7 @@
 
   $("#ranking-player-filter").addEventListener("change", renderRankings);
   $("#ranking-format-filter").addEventListener("change", renderRankings);
+  $("#insights-format-filter").addEventListener("change", renderInsights);
   $("#refresh-rankings").addEventListener("click", loadRankings);
   $("#toggle-ranking-edit").addEventListener("click", () => {
     rankingEditMode = !rankingEditMode;

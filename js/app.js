@@ -475,6 +475,7 @@
       status.textContent = "Rankings could not be loaded. The SRGF Sports Apps Script needs the rankings read endpoint.";
       console.error("SRGF Sports rankings:", error);
       renderRankings();
+      renderInsights();
     }
   }
 

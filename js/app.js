@@ -271,7 +271,11 @@
   function renderRankings() {
     const content = $("#ranking-content");
     const sport = selectedRankingSport();
-    $("#toggle-ranking-edit").hidden = !currentCredential || !sport;
+    const sheetName = String(sport && (sport.sheetName || sport.name) || "");
+    const systemManaged = /^(TT|PB|Bad|LT)-(Match|Rating|RatingHistory)$/i.test(sheetName) ||
+      ["SPORTS_PLAYERS", "SPORTS_ADMINS", "EVENTS"].includes(sheetName.toUpperCase());
+    // Elo rating sheets are derived from match history and must not be edited by hand.
+    $("#toggle-ranking-edit").hidden = !currentCredential || !sport || systemManaged;
     $("#ranking-admin-note").hidden = !currentCredential;
     $("#toggle-ranking-edit").textContent = rankingEditMode ? "Cancel editing" : "Edit rankings";
     renderRankingPicker();

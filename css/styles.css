@@ -26,3 +26,7 @@
 .admin-security-note{display:flex;align-items:flex-start;text-align:left;gap:10px;border-top:1px solid var(--line);padding-top:16px;margin-top:23px;color:var(--muted);font-size:11px}
 body.admin-modal-open{overflow:hidden}
 @media(max-width:560px){.admin-modal{padding:12px}.admin-modal-card{padding:29px 20px 22px;border-radius:21px}.admin-intro{font-size:13px}}
+
+/* Ensure the homepage admin control behaves and looks like a clickable button. */
+button.admin-link{-webkit-appearance:none;appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;position:relative;z-index:5;color:#fff;background:transparent;pointer-events:auto}
+button.admin-link:focus-visible{outline:3px solid var(--lime);outline-offset:3px}

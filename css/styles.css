@@ -44,3 +44,30 @@ button.admin-link:focus-visible{outline:3px solid var(--lime);outline-offset:3px
 
 /* The button's explicit display style must not override the HTML hidden attribute. */
 button.admin-link[hidden]{display:none!important}
+
+/* Sports rankings */
+.ranking-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ranking-sport-picker{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}
+.ranking-sport-chip{border:1px solid var(--line);background:#fff;color:var(--forest);padding:9px 15px;border-radius:999px;font-size:12px;font-weight:800;cursor:pointer}
+.ranking-sport-chip.active{background:var(--forest);border-color:var(--forest);color:#fff}
+.ranking-admin-note{padding:11px 14px;background:#e8f5eb;color:#205d37;border:1px solid #d3e8d7;border-radius:12px;font-size:12px;margin:14px 0}
+.ranking-content{min-width:0}
+.ranking-table-wrap{width:100%;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:16px}
+.ranking-table{border-collapse:collapse;width:100%;min-width:520px;font-size:13px}
+.ranking-table th{background:#edf4ee;color:var(--forest);font-size:11px;text-align:left;letter-spacing:.04em;font-weight:850;white-space:nowrap}
+.ranking-table th,.ranking-table td{padding:13px 15px;border-bottom:1px solid var(--line);vertical-align:middle}
+.ranking-table tbody tr:last-child td{border-bottom:0}
+.ranking-table tbody tr:nth-child(even){background:#fbfcfa}
+.ranking-editor{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px}
+.ranking-editor-title{display:flex;flex-direction:column;gap:3px;margin-bottom:15px}
+.ranking-editor-title strong{font-size:16px;color:var(--forest)}
+.ranking-editor-title span{font-size:12px;color:var(--muted)}
+.ranking-cell-input{width:100%;min-width:100px;padding:9px 10px;border:1px solid #cbd8cc;border-radius:8px;font:inherit;font-size:12px;color:var(--ink);background:#fff}
+.ranking-cell-input:focus{outline:2px solid #8fb99a;border-color:var(--forest)}
+.ranking-row-action{text-align:center}
+.remove-ranking-row{width:30px;height:30px;border:0;border-radius:50%;background:#fff0ee;color:#a33328;font-size:20px;line-height:1;cursor:pointer}
+.ranking-editor-actions{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-top:15px}
+.ranking-editor-actions .button{font-size:12px}
+.admin-edit-button{background:#e8f4eb;border-color:#c7ddca;color:var(--forest)}
+button[hidden]{display:none!important}
+@media(max-width:560px){.rankings-heading{align-items:flex-start;flex-direction:column}.ranking-actions{width:100%}.ranking-editor{padding:12px}.ranking-table th,.ranking-table td{padding:10px}.ranking-editor-actions{justify-content:stretch}.ranking-editor-actions button{flex:1}}

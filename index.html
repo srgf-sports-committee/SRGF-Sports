@@ -54,6 +54,7 @@
         <button class="tab" role="tab" aria-selected="false" aria-controls="upcoming-panel" id="tab-upcoming" data-tab="upcoming">Upcoming Sports <span id="upcoming-count" class="tab-count">—</span></button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="archived-panel" id="tab-archived" data-tab="archived">Archived Results <span id="archived-count" class="tab-count">—</span></button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="rankings-panel" id="tab-rankings" data-tab="rankings">Sports Ranking</button>
+        <button class="tab insights-tab" role="tab" aria-selected="false" aria-controls="insights-panel" id="tab-insights" data-tab="insights">🏆 Important Information</button>
       </nav>
 
       <section id="home-panel" class="tab-panel" role="tabpanel" aria-labelledby="tab-home">
@@ -115,6 +116,21 @@
         </div>
         <div id="ranking-status" class="directory-status" role="status" aria-live="polite">Loading sports rankings…</div>
         <div id="ranking-content" class="ranking-content"><div class="loading-state">Loading rankings…</div></div>
+      </section>
+      <section id="insights-panel" class="tab-panel insights-panel" role="tabpanel" aria-labelledby="tab-insights" hidden>
+        <div class="insights-hero">
+          <div><p class="eyebrow">THE SRGF SPORTS SCOREBOARD</p><h2>Big plays. Bright futures.</h2><p>Quick highlights, sport-by-sport leaders and one combined leaderboard for our four sports.</p></div>
+          <div class="insights-trophy" aria-hidden="true">🏆</div>
+        </div>
+        <div class="insights-section-head"><div><p class="eyebrow dark-eyebrow">AT A GLANCE</p><h3>Key highlights</h3></div><label class="insights-format-label">Leaderboard format <select id="insights-format-filter"><option value="Singles">Singles</option><option value="Doubles">Doubles</option></select></label></div>
+        <div id="insights-highlights" class="insights-kpis"><div class="insight-kpi"><span>Loading scoreboard…</span></div></div>
+        <div class="insights-section-head"><div><p class="eyebrow dark-eyebrow">THE LEADERS</p><h3>Top 5 players in each sport</h3><p>Ranked by Elo for the selected format.</p></div></div>
+        <div id="insights-top-five" class="insights-sport-grid"><div class="loading-state">Loading sport leaders…</div></div>
+        <div class="combined-leaderboard">
+          <div class="combined-leaderboard-head"><div><p class="eyebrow">FOUR SPORTS. ONE COMMUNITY.</p><h3>Combined sports ranking</h3><p>Average Elo across the four sports with a rating available. Sports covered is shown for context.</p></div><span class="combined-trophy" aria-hidden="true">🌟</span></div>
+          <div id="insights-combined"><div class="loading-state">Calculating combined rankings…</div></div>
+        </div>
+        <p class="insights-footnote">Rankings update from the SRGF Sports rating sheets. Elo is calculated from match outcomes; match scores do not change Elo directly.</p>
       </section>
       <p id="directory-status" class="directory-status" role="status" aria-live="polite"></p>
     </section>

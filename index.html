@@ -15,7 +15,7 @@
         <span class="brand-mark">S</span>
         <span><strong>SRGF SPORTS</strong><small>Community • Competition • Connection</small></span>
       </a>
-      <a class="admin-link" href="./admin/">Admin sign in <span aria-hidden="true">↗</span></a>
+      <button class="admin-link" id="open-admin-login" type="button">Admin sign in <span aria-hidden="true">↗</span></button>
     </div>
   </header>
 
@@ -78,7 +78,30 @@
     </section>
   </main>
 
+
+  <div id="admin-login-modal" class="admin-modal" hidden>
+    <div class="admin-modal-backdrop" data-admin-close></div>
+    <section class="admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-modal-title">
+      <button class="admin-modal-close" type="button" data-admin-close aria-label="Close admin sign in">×</button>
+      <div class="admin-brand-mark" aria-hidden="true">S</div>
+      <p class="eyebrow dark-eyebrow">RESTRICTED ACCESS</p>
+      <h2 id="admin-modal-title">Admin sign in</h2>
+      <p class="admin-intro">Sign in with your approved Google account to access SRGF Sports administration.</p>
+      <div id="google-signin-wrap" class="google-signin-wrap"><div id="google-signin-button"></div></div>
+      <div id="auth-status" class="auth-status" role="status" aria-live="polite">Please sign in with your approved Google account.</div>
+      <section id="admin-confirmation" class="admin-confirmation" hidden>
+        <span class="success-mark" aria-hidden="true">✓</span>
+        <h3>Administrator verified</h3>
+        <p id="verified-email"></p>
+        <p class="coming-soon">Your administrator access is verified. Event-management tools will be available here as they are added.</p>
+        <button id="sign-out-button" class="button button-dark" type="button">Sign out</button>
+      </section>
+      <div class="admin-security-note"><span aria-hidden="true">🔒</span><span>Access is checked by the separate SRGF Sports backend. A Google sign-in alone does not grant administrator access.</span></div>
+    </section>
+  </div>
   <footer class="site-footer"><div><strong>SRGF SPORTS</strong><span>Built for an active community.</span></div><span>Community • Sports • Together</span></footer>
+  
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="./js/app.js"></script>
 </body>
 </html>

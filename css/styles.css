@@ -30,3 +30,14 @@ body.admin-modal-open{overflow:hidden}
 /* Ensure the homepage admin control behaves and looks like a clickable button. */
 button.admin-link{-webkit-appearance:none;appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;position:relative;z-index:5;color:#fff;background:transparent;pointer-events:auto}
 button.admin-link:focus-visible{outline:3px solid var(--lime);outline-offset:3px}
+
+/* Header state after administrator authentication. */
+.admin-header-controls{display:flex;align-items:center;justify-content:flex-end;gap:12px}
+.admin-session-indicator{display:flex;align-items:center;gap:12px;border:1px solid #668477;border-radius:999px;padding:6px 8px 6px 14px;max-width:min(62vw,520px)}
+.admin-session-indicator[hidden]{display:none}
+.admin-session-details{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.admin-session-details strong{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;color:#fff}
+.admin-session-details small{font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--lime)}
+.header-sign-out-button{border:0;border-radius:999px;padding:8px 12px;background:var(--lime);color:var(--forest);font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
+.admin-session-indicator[hidden]{display:none}
+@media(max-width:560px){.admin-header-controls{gap:6px}.admin-session-indicator{max-width:62vw;padding-left:9px;gap:7px}.admin-session-details strong{max-width:27vw;font-size:10px}.header-sign-out-button{font-size:10px;padding:7px 9px}}

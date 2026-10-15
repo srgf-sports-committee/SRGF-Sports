@@ -203,6 +203,7 @@
       verifiedEmail.textContent = email;
       confirmation.hidden = false;
       showSignedInAdmin(email, role);
+      renderRankings();
       setAuthStatus("Your account has been verified by the SRGF Sports backend.", "success");
       // Authentication is reflected in the homepage header; no separate page is opened.
       window.setTimeout(closeAdminModal, 700);
@@ -225,6 +226,8 @@
     confirmation.hidden = true;
     signInWrap.hidden = false;
     clearSignedInAdmin();
+    rankingEditMode = false;
+    renderRankings();
     if (window.google && google.accounts && google.accounts.id) {
       google.accounts.id.disableAutoSelect();
       google.accounts.id.cancel();
@@ -235,9 +238,151 @@
   $("#sign-out-button").addEventListener("click", signOutAdmin);
   $("#header-sign-out-button").addEventListener("click", signOutAdmin);
 
+
+  // Sports rankings are read from separate sport-named tabs in the SRGF Sports master sheet.
+  let rankingSports = [];
+  let activeRankingSheet = "";
+  let rankingEditMode = false;
+
+  function selectedRankingSport() {
+    return rankingSports.find(s => String(s.sheetName || s.name) === activeRankingSheet) || rankingSports[0] || null;
+  }
+
+  function renderRankingPicker() {
+    const picker = $("#ranking-sport-picker");
+    picker.innerHTML = "";
+    rankingSports.forEach(sport => {
+      const sheet = String(sport.sheetName || sport.name || "");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "ranking-sport-chip" + (sheet === activeRankingSheet ? " active" : "");
+      button.textContent = String(sport.name || sheet);
+      button.setAttribute("role", "tab");
+      button.setAttribute("aria-selected", String(sheet === activeRankingSheet));
+      button.addEventListener("click", () => {
+        activeRankingSheet = sheet;
+        rankingEditMode = false;
+        renderRankings();
+      });
+      picker.appendChild(button);
+    });
+  }
+
+  function renderRankings() {
+    const content = $("#ranking-content");
+    const sport = selectedRankingSport();
+    $("#toggle-ranking-edit").hidden = !currentCredential || !sport;
+    $("#ranking-admin-note").hidden = !currentCredential;
+    $("#toggle-ranking-edit").textContent = rankingEditMode ? "Cancel editing" : "Edit rankings";
+    renderRankingPicker();
+    if (!sport) {
+      content.innerHTML = '<div class="empty-state"><strong>No sports rankings available yet</strong>Create a separate tab for each sport in the SRGF Sports master Google Sheet, then refresh this page.</div>';
+      return;
+    }
+    const headers = Array.isArray(sport.headers) ? sport.headers : [];
+    const rows = Array.isArray(sport.rows) ? sport.rows : [];
+    if (!headers.length) {
+      content.innerHTML = '<div class="empty-state"><strong>Ranking sheet needs headers</strong>Add column headings in row 1 of the "' + escapeHtml(sport.sheetName || sport.name) + '" sheet.</div>';
+      return;
+    }
+    if (rankingEditMode && currentCredential) {
+      const headerHtml = headers.map(h => '<th>' + escapeHtml(h) + '</th>').join("");
+      const rowsHtml = rows.map((row, ri) => '<tr data-ranking-row="' + ri + '">' + headers.map((_, ci) => '<td><input class="ranking-cell-input" aria-label="' + escapeHtml(headers[ci]) + ' row ' + (ri + 2) + '" data-row="' + ri + '" data-col="' + ci + '" value="' + escapeHtml(Array.isArray(row) ? (row[ci] ?? "") : "") + '"></td>').join("") + '<td class="ranking-row-action"><button type="button" class="remove-ranking-row" data-remove-row="' + ri + '" aria-label="Remove row ' + (ri + 1) + '">×</button></td></tr>').join("");
+      content.innerHTML = '<div class="ranking-editor"><div class="ranking-editor-title"><strong>Editing: ' + escapeHtml(sport.name || sport.sheetName) + '</strong><span>Changes are saved to the matching Google Sheets tab.</span></div><div class="ranking-table-wrap"><table class="ranking-table"><thead><tr>' + headerHtml + '<th>Remove</th></tr></thead><tbody id="ranking-edit-body">' + rowsHtml + '</tbody></table></div><div class="ranking-editor-actions"><button type="button" class="refresh-button" id="add-ranking-row">＋ Add row</button><button type="button" class="button button-dark" id="save-ranking-changes">Save rankings</button></div></div>';
+      $("#add-ranking-row").addEventListener("click", () => {
+        const body = $("#ranking-edit-body");
+        const ri = body.querySelectorAll("tr").length;
+        const tr = document.createElement("tr");
+        tr.dataset.rankingRow = String(ri);
+        tr.innerHTML = headers.map((h, ci) => '<td><input class="ranking-cell-input" aria-label="' + escapeHtml(h) + ' new row" data-row="' + ri + '" data-col="' + ci + '" value=""></td>').join("") + '<td class="ranking-row-action"><button type="button" class="remove-ranking-row" data-remove-row="' + ri + '" aria-label="Remove new row">×</button></td>';
+        body.appendChild(tr);
+        wireRemoveRankingRows();
+      });
+      $("#save-ranking-changes").addEventListener("click", saveRankingChanges);
+      wireRemoveRankingRows();
+      return;
+    }
+    if (!rows.length) {
+      content.innerHTML = '<div class="empty-state"><strong>No rankings published for ' + escapeHtml(sport.name || sport.sheetName) + '</strong>The administrator can add ranking rows using Edit rankings.</div>';
+      return;
+    }
+    content.innerHTML = '<div class="ranking-table-wrap"><table class="ranking-table"><thead><tr>' + headers.map(h => '<th>' + escapeHtml(h) + '</th>').join("") + '</tr></thead><tbody>' + rows.map(row => '<tr>' + headers.map((_, ci) => '<td>' + escapeHtml(Array.isArray(row) ? (row[ci] ?? "") : "") + '</td>').join("") + '</tr>').join("") + '</tbody></table></div>';
+  }
+
+  function wireRemoveRankingRows() {
+    document.querySelectorAll("[data-remove-row]").forEach(button => {
+      button.onclick = () => button.closest("tr").remove();
+    });
+  }
+
+  async function loadRankings() {
+    const status = $("#ranking-status");
+    status.textContent = "Loading sports rankings…";
+    try {
+      const response = await fetch(API_URL + "?action=rankings", {method:"GET", cache:"no-store"});
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const data = await response.json();
+      if (!data || data.ok !== true || !Array.isArray(data.sports)) throw new Error(data && data.error || "Ranking response is not configured yet.");
+      rankingSports = data.sports;
+      if (!rankingSports.some(s => String(s.sheetName || s.name) === activeRankingSheet)) {
+        activeRankingSheet = rankingSports.length ? String(rankingSports[0].sheetName || rankingSports[0].name) : "";
+      }
+      renderRankings();
+      status.textContent = "Rankings refreshed.";
+    } catch (error) {
+      status.textContent = "Rankings could not be loaded. The SRGF Sports Apps Script needs the rankings read endpoint.";
+      console.error("SRGF Sports rankings:", error);
+      renderRankings();
+    }
+  }
+
+  async function saveRankingChanges() {
+    if (!currentCredential) {
+      $("#ranking-status").textContent = "Please sign in as an approved administrator before saving.";
+      return;
+    }
+    const sport = selectedRankingSport();
+    if (!sport) return;
+    const headers = Array.isArray(sport.headers) ? sport.headers : [];
+    const body = $("#ranking-edit-body");
+    const rows = Array.from(body.querySelectorAll("tr")).map(tr => headers.map((_, ci) => {
+      const input = tr.querySelector('[data-col="' + ci + '"]');
+      return input ? input.value.trim() : "";
+    })).filter(row => row.some(cell => cell !== ""));
+    const saveButton = $("#save-ranking-changes");
+    saveButton.disabled = true;
+    saveButton.textContent = "Saving…";
+    $("#ranking-status").textContent = "Saving rankings to Google Sheets…";
+    try {
+      const response = await fetch(API_URL, {
+        method:"POST",
+        headers:{"Content-Type":"text/plain;charset=utf-8"},
+        body:JSON.stringify({action:"saverankings", idToken:currentCredential, sheetName:String(sport.sheetName || sport.name), headers, rows})
+      });
+      const data = await response.json();
+      if (!response.ok || !data || data.ok !== true) throw new Error(data && data.error || "Unable to save rankings.");
+      rankingEditMode = false;
+      await loadRankings();
+      $("#ranking-status").textContent = "Rankings saved successfully.";
+    } catch (error) {
+      $("#ranking-status").textContent = "Save failed. The SRGF Sports Apps Script needs the protected ranking-save endpoint.";
+      console.error("SRGF Sports ranking save:", error);
+    } finally {
+      const button = $("#save-ranking-changes");
+      if (button) { button.disabled = false; button.textContent = "Save rankings"; }
+    }
+  }
+
+  $("#refresh-rankings").addEventListener("click", loadRankings);
+  $("#toggle-ranking-edit").addEventListener("click", () => {
+    rankingEditMode = !rankingEditMode;
+    renderRankings();
+  });
+
   // The current Racketlon website remains accessible even before an event
   // record is added to the new master directory.
   window.SRGFSportsDirectory = { refresh: loadEvents, racketlonUrl: RACKETLON_URL };
   render();
   loadEvents();
+  loadRankings();
 })();

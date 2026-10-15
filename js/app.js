@@ -4,6 +4,9 @@
   const RACKETLON_URL = "https://srgf-sports-committee.github.io/SRGF-Racketlon-2027/";
   const $ = (selector) => document.querySelector(selector);
   let allEvents = [];
+  const GOOGLE_CLIENT_ID = "558722597292-0bod7pch3lnjb2j8421922rvtsdmjm1v.apps.googleusercontent.com";
+  let currentCredential = "";
+  let googleInitialized = false;
 
   function field(event, ...names) {
     for (const name of names) {
@@ -102,6 +105,109 @@
   }));
   $("#refresh-upcoming").addEventListener("click", loadEvents);
   $("#refresh-archived").addEventListener("click", loadEvents);
+
+
+  // Admin sign-in stays on this page; it uses only the separate SRGF Sports backend.
+  const adminModal = $("#admin-login-modal");
+  const signInWrap = $("#google-signin-wrap");
+  const authStatus = $("#auth-status");
+  const confirmation = $("#admin-confirmation");
+  const verifiedEmail = $("#verified-email");
+
+  function setAuthStatus(message, state) {
+    authStatus.textContent = message;
+    authStatus.dataset.state = state || "info";
+  }
+
+  function closeAdminModal() {
+    adminModal.hidden = true;
+    document.body.classList.remove("admin-modal-open");
+  }
+
+  function openAdminModal() {
+    adminModal.hidden = false;
+    document.body.classList.add("admin-modal-open");
+    if (!googleInitialized) initializeGoogleSignIn();
+  }
+
+  function initializeGoogleSignIn() {
+    if (!window.google || !google.accounts || !google.accounts.id) {
+      setAuthStatus("Loading Google sign-in…", "info");
+      window.setTimeout(initializeGoogleSignIn, 250);
+      return;
+    }
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleCredential,
+      auto_select: false,
+      cancel_on_tap_outside: true
+    });
+    renderGoogleButton();
+    googleInitialized = true;
+  }
+
+  function renderGoogleButton() {
+    if (!(window.google && google.accounts && google.accounts.id)) return;
+    const button = $("#google-signin-button");
+    button.innerHTML = "";
+    google.accounts.id.renderButton(button, {
+      type: "standard", theme: "outline", size: "large",
+      text: "signin_with", shape: "pill", logo_alignment: "left", width: 280
+    });
+  }
+
+  async function handleGoogleCredential(response) {
+    if (!response || !response.credential) {
+      setAuthStatus("Google sign-in did not return a credential. Please try again.", "error");
+      return;
+    }
+    currentCredential = response.credential;
+    signInWrap.hidden = true;
+    setAuthStatus("Verifying your administrator access…", "info");
+    try {
+      const result = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify({ action: "adminauth", idToken: currentCredential })
+      });
+      if (!result.ok) throw new Error("HTTP " + result.status);
+      const data = await result.json();
+      if (!data || data.ok !== true || data.authorized !== true ||
+          String(data.role || "").toUpperCase() !== "ADMIN") {
+        currentCredential = "";
+        signInWrap.hidden = false;
+        renderGoogleButton();
+        setAuthStatus((data && data.error) || "This Google account is not authorised for SRGF Sports administration.", "error");
+        return;
+      }
+      verifiedEmail.textContent = String(data.email || "");
+      confirmation.hidden = false;
+      setAuthStatus("Your account has been verified by the SRGF Sports backend.", "success");
+    } catch (error) {
+      currentCredential = "";
+      signInWrap.hidden = false;
+      renderGoogleButton();
+      setAuthStatus("Could not verify admin access. Please try again later.", "error");
+      console.error("SRGF Sports admin authentication:", error);
+    }
+  }
+
+  $("#open-admin-login").addEventListener("click", openAdminModal);
+  document.querySelectorAll("[data-admin-close]").forEach(el => el.addEventListener("click", closeAdminModal));
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !adminModal.hidden) closeAdminModal();
+  });
+  $("#sign-out-button").addEventListener("click", () => {
+    currentCredential = "";
+    confirmation.hidden = true;
+    signInWrap.hidden = false;
+    if (window.google && google.accounts && google.accounts.id) {
+      google.accounts.id.disableAutoSelect();
+      google.accounts.id.cancel();
+      renderGoogleButton();
+    }
+    setAuthStatus("You have signed out of the admin session.", "info");
+  });
 
   // The current Racketlon website remains accessible even before an event
   // record is added to the new master directory.

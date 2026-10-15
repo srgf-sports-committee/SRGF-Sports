@@ -41,3 +41,6 @@ button.admin-link:focus-visible{outline:3px solid var(--lime);outline-offset:3px
 .header-sign-out-button{border:0;border-radius:999px;padding:8px 12px;background:var(--lime);color:var(--forest);font-size:12px;font-weight:800;cursor:pointer;white-space:nowrap}
 .admin-session-indicator[hidden]{display:none}
 @media(max-width:560px){.admin-header-controls{gap:6px}.admin-session-indicator{max-width:62vw;padding-left:9px;gap:7px}.admin-session-details strong{max-width:27vw;font-size:10px}.header-sign-out-button{font-size:10px;padding:7px 9px}}
+
+/* The button's explicit display style must not override the HTML hidden attribute. */
+button.admin-link[hidden]{display:none!important}

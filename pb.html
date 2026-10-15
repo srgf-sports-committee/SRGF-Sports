@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#123b2b"><title>SRGF Sports | Pickleball Rankings</title>
+<meta name="description" content="Track Singles and Doubles Elo ratings, match results and player progress for Pickleball.">
+<link rel="stylesheet" href="./sport.css">
+</head>
+<body data-sport="PB" data-sport-name="Pickleball">
+<header class="top"><div class="top-inner">
+<a class="brand" href="./" aria-label="SRGF Sports home"><span class="brand-mark">S</span><span><strong>SRGF SPORTS</strong><small>Community • Competition • Connection</small></span></a>
+<div class="top-actions"><a href="./">← Sports home</a><button id="admin-signout" class="hidden" type="button">Sign out</button></div>
+</div></header>
+<section class="hero"><div class="hero-inner"><p class="eyebrow">SPORTS RANKINGS</p><h1>Pickleball</h1><p>Track Singles and Doubles Elo ratings, match results and player progress for Pickleball. Every registered player starts at 1000 Elo in each sport and format.</p></div></section>
+<main class="wrap">
+<section class="panel">
+<div class="panel-head"><div><h2>Current rankings</h2><p class="muted">Ratings are calculated from completed match results.</p></div><div class="controls"><label class="small-help" for="ranking-format">Format </label><select id="ranking-format" aria-label="Ranking format"><option>Singles</option><option>Doubles</option></select><button class="button secondary" id="refresh-rankings" type="button">Refresh</button></div></div>
+<div id="rankings-table"><div class="empty">Loading ratings…</div></div><p id="ranking-status" class="status" role="status"></p>
+</section>
+<section class="panel">
+<div class="panel-head"><div><h2>Match history</h2><p class="muted">Most recent match records are listed first.</p></div><button class="button secondary" id="refresh-matches" type="button">Refresh</button></div>
+<div id="matches-table"><div class="empty">Loading match history…</div></div>
+</section>
+<section class="panel" id="admin-login-panel">
+<div class="panel-head"><div><h2>Administrator access</h2><p class="muted">Sign in to enter individual results or import a batch file.</p></div></div>
+<div class="login-row"><div id="google-signin-button" class="google-button"></div><p id="login-status" class="status" role="status">Sign in with your approved SRGF Sports administrator account.</p></div>
+</section>
+<section id="admin-panel" class="hidden">
+<div class="panel">
+<div class="panel-head"><div><h2>Enter a match result</h2><p class="muted">Use registered Player IDs. Names are looked up from SPORTS_PLAYERS; members are never auto-created.</p></div><span class="pill">ADMIN <span id="admin-email"></span></span></div>
+<div class="inline-note">If a Player ID is missing or inactive, the match will be rejected. Add or activate that member manually in SPORTS_PLAYERS, then try again.</div>
+<form id="match-form">
+<div class="form-grid">
+<div class="field"><label for="match-id">Match ID (leave blank for new match)</label><input id="match-id" placeholder="Generated automatically"></div>
+<div class="field"><label for="match-date">Match date</label><input id="match-date" type="date" required></div>
+<div class="field"><label for="format">Format</label><select id="format"><option>Singles</option><option>Doubles</option></select></div>
+<div class="field"><label for="match-status">Status</label><select id="match-status"><option>Completed</option><option>Pending</option></select></div>
+<div class="field"><label for="p1">Side 1 — Player 1 ID</label><select id="p1" required><option value="">Loading players…</option></select></div>
+<div class="field"><label for="p2">Side 1 — Player 2 ID (Singles opponent)</label><select id="p2" required><option value="">Loading players…</option></select></div>
+<div class="field hidden" id="p3-wrap"><label for="p3">Side 2 — Player 3 ID</label><select id="p3"><option value="">Select Player ID…</option></select></div>
+<div class="field hidden" id="p4-wrap"><label for="p4">Side 2 — Player 4 ID</label><select id="p4"><option value="">Select Player ID…</option></select></div>
+<div class="field"><label for="score1">Side 1 score (optional)</label><input id="score1" type="number" step="any" placeholder="e.g. 21"></div>
+<div class="field"><label for="score2">Side 2 score (optional)</label><input id="score2" type="number" step="any" placeholder="e.g. 18"></div>
+<div class="field"><label for="result">Result</label><select id="result"><option value="">Auto from scores (if entered)</option><option>Side 1 Win</option><option>Side 2 Win</option><option>Draw</option></select></div>
+<div class="field wide"><label for="notes">Notes (optional)</label><textarea id="notes" placeholder="Court, round, competition or other notes"></textarea></div>
+</div>
+<div class="controls" style="margin-top:16px"><button class="button" id="save-match" type="submit">Save match result</button></div><p id="entry-status" class="status" role="status"></p>
+</form>
+</div>
+<div class="panel">
+<div class="panel-head"><div><h2>Bulk results upload</h2><p class="muted">Upload one Excel (.xlsx) or CSV file containing results from any of the four sports.</p></div><button class="button secondary" id="download-template" type="button">Download Excel template</button></div>
+<div class="upload-zone"><div class="field"><label for="upload-file">Choose .xlsx or .csv file</label><input id="upload-file" type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"><small>First worksheet is read. Keep the template column headings unchanged. Bulk uploads require a unique Match ID on every row to protect against duplicate imports.</small></div></div>
+<div id="upload-preview"></div><div class="controls" style="margin-top:14px"><button class="button" id="confirm-upload" type="button" disabled>Validate and import results</button></div><p id="upload-status" class="status" role="status"></p>
+</div>
+</section>
+</main>
+<footer class="footer">SRGF SPORTS • Community • Competition • Connection</footer>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="./js/sport.js"></script>
+</body></html>

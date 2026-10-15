@@ -538,6 +538,14 @@ function doPost(e) {
 /** Optional manual smoke test: run from Apps Script editor after setup. */
 function testSportsSchema_() {
   const ss=getDirectory_();
-  Object.keys(SPORT_MAP_).forEach(code=>ensureSchema_(ss,SPORT_MAP_[code]));
-  return "All sports ranking tabs and headers validated.";
+  const results = [];
+  Object.keys(SPORT_MAP_).forEach(code => {
+    const sport = SPORT_MAP_[code];
+    ensureSchema_(ss, sport);
+    // Populate each rating tab with every registered player at 1000 Elo,
+    // even before the first completed match is recorded.
+    results.push(replaySport_(ss, sport));
+  });
+  return "All sports tabs validated and ratings initialized: " +
+    results.map(r => r.sport + " (" + r.players + " players)").join(", ");
 }

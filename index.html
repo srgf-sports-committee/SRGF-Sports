@@ -53,6 +53,7 @@
         <button class="tab active" role="tab" aria-selected="true" aria-controls="home-panel" id="tab-home" data-tab="home">Home</button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="upcoming-panel" id="tab-upcoming" data-tab="upcoming">Upcoming Sports <span id="upcoming-count" class="tab-count">—</span></button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="archived-panel" id="tab-archived" data-tab="archived">Archived Results <span id="archived-count" class="tab-count">—</span></button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="rankings-panel" id="tab-rankings" data-tab="rankings">Sports Ranking</button>
       </nav>
 
       <section id="home-panel" class="tab-panel" role="tabpanel" aria-labelledby="tab-home">
@@ -80,6 +81,19 @@
         <div id="archived-list" class="event-grid"><div class="loading-state">Loading archived events…</div></div>
       </section>
 
+      <section id="rankings-panel" class="tab-panel" role="tabpanel" aria-labelledby="tab-rankings" hidden>
+        <div class="list-heading rankings-heading">
+          <div><h3>Sports Ranking</h3><p>Browse the latest published rankings across SRGF sports.</p></div>
+          <div class="ranking-actions">
+            <button class="refresh-button" id="refresh-rankings" type="button">↻ Refresh</button>
+            <button class="refresh-button admin-edit-button" id="toggle-ranking-edit" type="button" hidden>Edit rankings</button>
+          </div>
+        </div>
+        <div id="ranking-admin-note" class="ranking-admin-note" hidden>You are signed in as an SRGF Sports administrator. Changes are not public until saved.</div>
+        <div id="ranking-sport-picker" class="ranking-sport-picker" role="tablist" aria-label="Choose a sport"></div>
+        <div id="ranking-status" class="directory-status" role="status" aria-live="polite">Loading sports rankings…</div>
+        <div id="ranking-content" class="ranking-content"><div class="loading-state">Loading rankings…</div></div>
+      </section>
       <p id="directory-status" class="directory-status" role="status" aria-live="polite"></p>
     </section>
   </main>

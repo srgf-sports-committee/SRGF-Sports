@@ -245,13 +245,15 @@
   let rankingEditMode = false;
 
   function selectedRankingSport() {
+    if (activeRankingSheet === "__ALL__") return null;
     return rankingSports.find(s => String(s.sheetName || s.name) === activeRankingSheet) || rankingSports[0] || null;
   }
 
   function renderRankingPicker() {
     const picker = $("#ranking-sport-picker");
     picker.innerHTML = "";
-    rankingSports.forEach(sport => {
+    const choices = [{name:"All Sports",sheetName:"__ALL__"}, ...rankingSports];
+    choices.forEach(sport => {
       const sheet = String(sport.sheetName || sport.name || "");
       const button = document.createElement("button");
       button.type = "button";
@@ -268,49 +270,114 @@
     });
   }
 
+  function rankingSheetForSport(sport) {
+    return rankingSports.find(s => String(s.code || "").toUpperCase() === String(sport || "").toUpperCase()) ||
+      rankingSports.find(s => String(s.sheetName || "").replace(/-Rating$/i,"").toUpperCase() === String(sport || "").toUpperCase()) || null;
+  }
+
+  function rankingObjects(sport) {
+    const headers = Array.isArray(sport.headers) ? sport.headers : [];
+    return (sport.rows || []).map(row => {
+      const item = {};
+      headers.forEach((h, i) => item[h] = Array.isArray(row) ? (row[i] ?? "") : "");
+      return item;
+    });
+  }
+
+  function populateRankingPlayerFilter() {
+    const select = $("#ranking-player-filter");
+    if (!select) return;
+    const previous = select.value;
+    const byId = new Map();
+    rankingSports.forEach(sport => rankingObjects(sport).forEach(row => {
+      const id = String(row["Player ID"] || "").trim();
+      const name = String(row["Player Name"] || "").trim();
+      if (id && name && !byId.has(id)) byId.set(id, name);
+    }));
+    select.innerHTML = '<option value="">All players</option>' +
+      Array.from(byId.entries()).sort((a,b) => a[1].localeCompare(b[1])).map(([id,name]) =>
+        '<option value="' + escapeHtml(id) + '">' + escapeHtml(name + " (" + id + ")") + '</option>'
+      ).join("");
+    if (byId.has(previous)) select.value = previous;
+  }
+
+  function renderAllSportsRankings() {
+    const content = $("#ranking-content");
+    const selectedPlayer = $("#ranking-player-filter").value;
+    const format = $("#ranking-format-filter").value;
+    const eloKey = format + " Elo";
+    const matchesKey = format + " Matches";
+    const winsKey = format + " Wins";
+    const lossesKey = format + " Losses";
+    const drawsKey = format + " Draws";
+    let rows = [];
+    const selectedSport = activeRankingSheet === "__ALL__" ? null :
+      rankingSports.find(s => String(s.sheetName || s.name) === activeRankingSheet);
+    const sources = selectedSport ? [selectedSport] : rankingSports;
+    sources.forEach(sport => rankingObjects(sport).forEach(row => {
+      if (selectedPlayer && String(row["Player ID"] || "") !== selectedPlayer) return;
+      rows.push({
+        sport: sport.name || String(sport.sheetName || "").replace(/-Rating$/i,""),
+        id: row["Player ID"] || "",
+        name: row["Player Name"] || "",
+        elo: Number(row[eloKey] || 1000),
+        matches: row[matchesKey] || 0,
+        wins: row[winsKey] || 0,
+        losses: row[lossesKey] || 0,
+        draws: row[drawsKey] || 0
+      });
+    }));
+    rows.sort((a,b) => a.sport.localeCompare(b.sport) || b.elo-a.elo || String(a.name).localeCompare(String(b.name)));
+    if (!rows.length) {
+      content.innerHTML = '<div class="empty-state"><strong>No matching rankings yet</strong>' +
+        (selectedPlayer ? 'This player has no rating row for the selected sport and format.' : 'Registered players will appear here once the sports rating tabs are populated.') +
+        '</div>';
+      return;
+    }
+    const counts = {};
+    const tableRows = rows.map(row => {
+      counts[row.sport] = (counts[row.sport] || 0) + 1;
+      const rank = counts[row.sport];
+      return '<tr><td>' + rank + '</td><td>' + escapeHtml(row.sport) + '</td><td>' +
+        escapeHtml(row.id) + '</td><td><strong>' + escapeHtml(row.name) + '</strong></td><td>' +
+        escapeHtml(row.elo) + '</td><td>' + escapeHtml(row.matches) + '</td><td>' +
+        escapeHtml(row.wins) + '</td><td>' + escapeHtml(row.losses) + '</td><td>' +
+        escapeHtml(row.draws) + '</td></tr>';
+    }).join("");
+    content.innerHTML = '<div class="ranking-table-wrap"><table class="ranking-table"><thead><tr><th>Rank</th><th>Sport</th><th>Player ID</th><th>Player</th><th>' +
+      escapeHtml(format) + ' Elo</th><th>Matches</th><th>Wins</th><th>Losses</th><th>Draws</th></tr></thead><tbody>' +
+      tableRows + '</tbody></table></div>';
+  }
+
   function renderRankings() {
     const content = $("#ranking-content");
     const sport = selectedRankingSport();
     const sheetName = String(sport && (sport.sheetName || sport.name) || "");
-    const systemManaged = /^(TT|PB|Bad|LT)-(Match|Rating|RatingHistory)$/i.test(sheetName) ||
-      ["SPORTS_PLAYERS", "SPORTS_ADMINS", "EVENTS"].includes(sheetName.toUpperCase());
-    // Elo rating sheets are derived from match history and must not be edited by hand.
-    $("#toggle-ranking-edit").hidden = !currentCredential || !sport || systemManaged;
+    // Ranking sheets are generated by the Elo engine; keep them read-only.
+    $("#toggle-ranking-edit").hidden = true;
     $("#ranking-admin-note").hidden = !currentCredential;
     $("#toggle-ranking-edit").textContent = rankingEditMode ? "Cancel editing" : "Edit rankings";
     renderRankingPicker();
+    if (!rankingSports.length) {
+      content.innerHTML = '<div class="empty-state"><strong>No sports rankings available yet</strong>Refresh after the sports rating tabs have been configured.</div>';
+      return;
+    }
+    if ($("#ranking-player-filter") && $("#ranking-format-filter")) {
+      populateRankingPlayerFilter();
+      renderAllSportsRankings();
+      return;
+    }
+    // Fallback for older markup.
     if (!sport) {
-      content.innerHTML = '<div class="empty-state"><strong>No sports rankings available yet</strong>Create a separate tab for each sport in the SRGF Sports master Google Sheet, then refresh this page.</div>';
+      content.innerHTML = '<div class="empty-state"><strong>No sports rankings available yet</strong>Refresh this page to try again.</div>';
       return;
     }
     const headers = Array.isArray(sport.headers) ? sport.headers : [];
     const rows = Array.isArray(sport.rows) ? sport.rows : [];
-    if (!headers.length) {
-      content.innerHTML = '<div class="empty-state"><strong>Ranking sheet needs headers</strong>Add column headings in row 1 of the "' + escapeHtml(sport.sheetName || sport.name) + '" sheet.</div>';
-      return;
-    }
-    if (rankingEditMode && currentCredential) {
-      const headerHtml = headers.map(h => '<th>' + escapeHtml(h) + '</th>').join("");
-      const rowsHtml = rows.map((row, ri) => '<tr data-ranking-row="' + ri + '">' + headers.map((_, ci) => '<td><input class="ranking-cell-input" aria-label="' + escapeHtml(headers[ci]) + ' row ' + (ri + 2) + '" data-row="' + ri + '" data-col="' + ci + '" value="' + escapeHtml(Array.isArray(row) ? (row[ci] ?? "") : "") + '"></td>').join("") + '<td class="ranking-row-action"><button type="button" class="remove-ranking-row" data-remove-row="' + ri + '" aria-label="Remove row ' + (ri + 1) + '">×</button></td></tr>').join("");
-      content.innerHTML = '<div class="ranking-editor"><div class="ranking-editor-title"><strong>Editing: ' + escapeHtml(sport.name || sport.sheetName) + '</strong><span>Changes are saved to the matching Google Sheets tab.</span></div><div class="ranking-table-wrap"><table class="ranking-table"><thead><tr>' + headerHtml + '<th>Remove</th></tr></thead><tbody id="ranking-edit-body">' + rowsHtml + '</tbody></table></div><div class="ranking-editor-actions"><button type="button" class="refresh-button" id="add-ranking-row">＋ Add row</button><button type="button" class="button button-dark" id="save-ranking-changes">Save rankings</button></div></div>';
-      $("#add-ranking-row").addEventListener("click", () => {
-        const body = $("#ranking-edit-body");
-        const ri = body.querySelectorAll("tr").length;
-        const tr = document.createElement("tr");
-        tr.dataset.rankingRow = String(ri);
-        tr.innerHTML = headers.map((h, ci) => '<td><input class="ranking-cell-input" aria-label="' + escapeHtml(h) + ' new row" data-row="' + ri + '" data-col="' + ci + '" value=""></td>').join("") + '<td class="ranking-row-action"><button type="button" class="remove-ranking-row" data-remove-row="' + ri + '" aria-label="Remove new row">×</button></td>';
-        body.appendChild(tr);
-        wireRemoveRankingRows();
-      });
-      $("#save-ranking-changes").addEventListener("click", saveRankingChanges);
-      wireRemoveRankingRows();
-      return;
-    }
-    if (!rows.length) {
-      content.innerHTML = '<div class="empty-state"><strong>No rankings published for ' + escapeHtml(sport.name || sport.sheetName) + '</strong>The administrator can add ranking rows using Edit rankings.</div>';
-      return;
-    }
-    content.innerHTML = '<div class="ranking-table-wrap"><table class="ranking-table"><thead><tr>' + headers.map(h => '<th>' + escapeHtml(h) + '</th>').join("") + '</tr></thead><tbody>' + rows.map(row => '<tr>' + headers.map((_, ci) => '<td>' + escapeHtml(Array.isArray(row) ? (row[ci] ?? "") : "") + '</td>').join("") + '</tr>').join("") + '</tbody></table></div>';
+    content.innerHTML = '<div class="ranking-table-wrap"><table class="ranking-table"><thead><tr>' +
+      headers.map(h => '<th>' + escapeHtml(h) + '</th>').join("") + '</tr></thead><tbody>' +
+      rows.map(row => '<tr>' + headers.map((_, ci) => '<td>' + escapeHtml(Array.isArray(row) ? (row[ci] ?? "") : "") + '</td>').join("") + '</tr>').join("") +
+      '</tbody></table></div>';
   }
 
   function wireRemoveRankingRows() {
@@ -328,8 +395,8 @@
       const data = await response.json();
       if (!data || data.ok !== true || !Array.isArray(data.sports)) throw new Error(data && data.error || "Ranking response is not configured yet.");
       rankingSports = data.sports;
-      if (!rankingSports.some(s => String(s.sheetName || s.name) === activeRankingSheet)) {
-        activeRankingSheet = rankingSports.length ? String(rankingSports[0].sheetName || rankingSports[0].name) : "";
+      if (activeRankingSheet !== "__ALL__" && !rankingSports.some(s => String(s.sheetName || s.name) === activeRankingSheet)) {
+        activeRankingSheet = "__ALL__";
       }
       renderRankings();
       status.textContent = "Rankings refreshed.";
@@ -377,6 +444,8 @@
     }
   }
 
+  $("#ranking-player-filter").addEventListener("change", renderRankings);
+  $("#ranking-format-filter").addEventListener("change", renderRankings);
   $("#refresh-rankings").addEventListener("click", loadRankings);
   $("#toggle-ranking-edit").addEventListener("click", () => {
     rankingEditMode = !rankingEditMode;

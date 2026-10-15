@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#123b2b">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Admin Sign In | SRGF Sports</title>
+  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="./admin.css">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="./admin.js" defer></script>
+</head>
+<body class="admin-page">
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../" aria-label="SRGF Sports home">
+        <span class="brand-mark">S</span>
+        <span><strong>SRGF SPORTS</strong><small>Community • Competition • Connection</small></span>
+      </a>
+      <a class="admin-link" href="../">← Back to website</a>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <section class="admin-shell" aria-labelledby="admin-title">
+      <div class="admin-brand-mark" aria-hidden="true">S</div>
+      <p class="eyebrow dark-eyebrow">RESTRICTED ACCESS</p>
+      <h1 id="admin-title">Admin sign in</h1>
+      <p class="admin-intro">Sign in with your Google account to access SRGF Sports administration. Only active administrators approved by SRGF Sports can continue.</p>
+
+      <div id="google-signin-wrap" class="google-signin-wrap">
+        <div id="google-signin-button"></div>
+      </div>
+
+      <div id="auth-status" class="auth-status" role="status" aria-live="polite">Please sign in with your approved Google account.</div>
+
+      <section id="admin-confirmation" class="admin-confirmation" hidden>
+        <span class="success-mark" aria-hidden="true">✓</span>
+        <h2>Administrator verified</h2>
+        <p id="verified-email"></p>
+        <p class="coming-soon">Authentication is ready. The event-management interface will be added separately.</p>
+        <button id="sign-out-button" class="button button-dark" type="button">Sign out</button>
+      </section>
+
+      <div class="admin-security-note">
+        <span aria-hidden="true">🔒</span>
+        <span>Access is checked by the SRGF Sports backend. A Google sign-in alone does not grant administrator access.</span>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer"><div><strong>SRGF SPORTS</strong><span>Administrator access</span></div><span>Community • Sports • Together</span></footer>
+</body>
+</html>

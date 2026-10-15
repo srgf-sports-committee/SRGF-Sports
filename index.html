@@ -15,7 +15,13 @@
         <span class="brand-mark">S</span>
         <span><strong>SRGF SPORTS</strong><small>Community • Competition • Connection</small></span>
       </a>
-      <button class="admin-link" id="open-admin-login" type="button" onclick="document.getElementById(\'admin-login-modal\').hidden=false;document.body.classList.add(\'admin-modal-open\')">Admin sign in <span aria-hidden="true">↗</span></button>
+      <div class="admin-header-controls">
+        <button class="admin-link" id="open-admin-login" type="button">Admin sign in <span aria-hidden="true">↗</span></button>
+        <div id="admin-session-indicator" class="admin-session-indicator" hidden>
+          <span class="admin-session-details"><strong id="header-admin-email"></strong><small id="header-admin-role">ADMIN</small></span>
+          <button id="header-sign-out-button" class="header-sign-out-button" type="button">Sign out</button>
+        </div>
+      </div>
     </div>
   </header>
 

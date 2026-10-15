@@ -504,6 +504,8 @@ function doPost(e) {
       const lock=LockService.getScriptLock(); lock.waitLock(30000);
       try { return json_(saveOneMatch_(ss,body)); } finally { lock.releaseLock(); }
     }
+    if(action==="loadsampledata") return json_(loadSampleData_(ss));
+    if(action==="removesampledata") return json_(removeSampleData_(ss));
     if(action==="bulkimport" || action==="bulkresults") return json_(bulkImport_(ss,body));
     if(action==="recalculaterankings") {
       const sport=sportInfo_(body.sport);
@@ -533,6 +535,42 @@ function doPost(e) {
   } catch(err) {
     return json_({ok:false,error:String(err.message||err)});
   }
+}
+
+
+function loadSampleData_(ss) {
+  const ids=["SAMPLE-DEMO-001","SAMPLE-DEMO-002","SAMPLE-DEMO-003","SAMPLE-DEMO-004"];
+  const names=["Demo Player One","Demo Player Two","Demo Player Three","Demo Player Four"];
+  const ps=requireSheet_(ss,"SPORTS_PLAYERS",["Player ID","Player Name","Active","Created At"]);
+  const known=playerMap_(ss,true);
+  ids.forEach((id,i)=>{if(known[id] && known[id].name!==names[i]) throw new Error("Demo ID conflict: "+id);});
+  if(Object.keys(SPORT_MAP_).some(code=>readMatchRows_(ss,SPORT_MAP_[code]).some(m=>upper_(m["Match ID"]).indexOf("SAMPLE-")===0))) throw new Error("Sample matches already exist. Remove them before loading again.");
+  ids.forEach((id,i)=>{if(!known[id])ps.appendRow([id,names[i],true,new Date()]);});
+  const players=playerMap_(ss,false);
+  const ex=[
+    ["S1","2026-10-10","Singles",0,1,"", "",11,7,"Side 1 Win","SAMPLE DATA — singles win"],
+    ["D1","2026-10-11","Doubles",0,1,2,3,21,18,"Side 1 Win","SAMPLE DATA — doubles result"],
+    ["S2","2026-10-12","Singles",2,3,"","",9,11,"Side 2 Win","SAMPLE DATA — singles loss"],
+    ["S3","2026-10-13","Singles",0,2,"","",10,10,"Draw","SAMPLE DATA — draw"]
+  ];
+  let total=0; const summaries=[];
+  Object.keys(SPORT_MAP_).forEach(code=>{
+    const s=SPORT_MAP_[code]; ensureSchema_(ss,s);
+    ex.forEach(x=>{writeMatch_(ss,s,{"Match ID":"SAMPLE-"+s.prefix+"-"+x[0],"Match Date":x[1],Format:x[2],"Player 1 ID":ids[x[3]],"Player 2 ID":ids[x[4]],"Player 3 ID":x[5]===""?"":ids[x[5]],"Player 4 ID":x[6]===""?"":ids[x[6]],"Score 1":x[7],"Score 2":x[8],Result:x[9],Status:"Completed",Notes:x[10]},players);total++;});
+    summaries.push(replaySport_(ss,s));
+  });
+  return {ok:true,message:"Sample matches loaded. They use clearly labelled demo players and SAMPLE- match IDs.",playersAdded:ids.filter(id=>!known[id]).length,matchesAdded:total,sports:summaries};
+}
+function removeSampleData_(ss) {
+  let removed=0;
+  Object.keys(SPORT_MAP_).forEach(code=>{
+    const s=SPORT_MAP_[code],sh=requireSheet_(ss,matchSheetName_(s),MATCH_HEADERS_);
+    readMatchRows_(ss,s).filter(m=>upper_(m["Match ID"]).indexOf("SAMPLE-")===0).sort((a,b)=>b.__row-a.__row).forEach(m=>{sh.deleteRow(m.__row);removed++;});
+  });
+  const ps=requireSheet_(ss,"SPORTS_PLAYERS",["Player ID","Player Name","Active","Created At"]),v=ps.getDataRange().getDisplayValues();
+  for(let i=v.length-1;i>=1;i--)if(/^SAMPLE-DEMO-[0-9]+$/.test(upper_(v[i][0])))ps.deleteRow(i+1);
+  const summaries=[];Object.keys(SPORT_MAP_).forEach(code=>summaries.push(replaySport_(ss,SPORT_MAP_[code])));
+  return {ok:true,message:"Sample matches and demo players removed; ratings recalculated.",matchesRemoved:removed,sports:summaries};
 }
 
 /** Optional manual smoke test: run from Apps Script editor after setup. */

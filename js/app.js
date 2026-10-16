@@ -452,21 +452,21 @@
       const rank = index + 1;
       if (isAllSports) {
         return '<tr><td>' + rank + '</td><td>' + escapeHtml(row.id) + '</td><td><strong>' +
-          escapeHtml(row.name) + '</strong></td><td>' + escapeHtml(row.gender) + '</td><td>' +
+          escapeHtml(row.name) + '</strong></td><td>All Sports</td><td>' + escapeHtml(row.gender) + '</td><td>' +
           escapeHtml(row.age) + '</td><td>' + row.sportsPlayed + '</td><td><strong>' +
           escapeHtml(row.averageElo.toFixed(1)) + '</strong></td><td>' + row.matches + '</td><td>' +
           row.wins + '</td><td>' + row.losses + '</td><td>' + row.draws + '</td></tr>';
       }
       return '<tr><td>' + rank + '</td><td>' + escapeHtml(row.id) + '</td><td><strong>' +
-        escapeHtml(row.name) + '</strong></td><td>' + escapeHtml(row.gender) + '</td><td>' +
+        escapeHtml(row.name) + '</strong></td><td>' + escapeHtml(row.sport) + '</td><td>' + escapeHtml(row.gender) + '</td><td>' +
         escapeHtml(row.age) + '</td><td>' + escapeHtml(row.elo) + '</td><td>' +
         escapeHtml(row.matches) + '</td><td>' + escapeHtml(row.wins) + '</td><td>' +
         escapeHtml(row.losses) + '</td><td>' + escapeHtml(row.draws) + '</td></tr>';
     }).join("");
 
     const headers = isAllSports
-      ? '<th>Rank</th><th>Player ID</th><th>Player</th><th>Gender</th><th>Age</th><th>Sports Played</th><th>Average Elo</th><th>Matches</th><th>Wins</th><th>Losses</th><th>Draws</th>'
-      : '<th>Rank</th><th>Player ID</th><th>Player</th><th>Gender</th><th>Age</th><th>' + escapeHtml(format) + ' Elo</th><th>Matches</th><th>Wins</th><th>Losses</th><th>Draws</th>';
+      ? '<th>Rank</th><th>Player ID</th><th>Player</th><th>Sports</th><th>Gender</th><th>Age</th><th>Sports Played</th><th>Average Elo</th><th>Matches</th><th>Wins</th><th>Losses</th><th>Draws</th>'
+      : '<th>Rank</th><th>Player ID</th><th>Player</th><th>Sports</th><th>Gender</th><th>Age</th><th>' + escapeHtml(format) + ' Elo</th><th>Matches</th><th>Wins</th><th>Losses</th><th>Draws</th>';
     const description = isAllSports
       ? '<p class="category-ranking-note">Combined ranking: players are ranked by their average ' + escapeHtml(format) + ' Elo across the sports they have a rating in. Sports Played shows how many sports contribute to the average.</p>'
       : '<p class="category-ranking-note">Ranking for ' + escapeHtml(selectedSport.name || selectedSport.sheetName || "this sport") + ', ordered by ' + escapeHtml(format) + ' Elo.</p>';

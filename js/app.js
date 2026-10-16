@@ -166,10 +166,72 @@
   const headerAdminRole = $("#header-admin-role");
   const adminSessionIndicator = $("#admin-session-indicator");
   const openAdminButton = $("#open-admin-login");
+  const ADMIN_SESSION_KEY = "srgfSportsAdminSessionV1";
+  const ADMIN_IDLE_MS = 60 * 60 * 1000;
+  let adminSessionEmail = "";
+  let adminSessionRole = "ADMIN";
+  let idleTimer = null;
+  let restoringAdminSession = false;
+
+  function readAdminSession() {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(ADMIN_SESSION_KEY) || "null");
+      if (!saved || !saved.credential || !saved.lastActivity || Date.now() - saved.lastActivity >= ADMIN_IDLE_MS) {
+        sessionStorage.removeItem(ADMIN_SESSION_KEY);
+        return null;
+      }
+      return saved;
+    } catch (_) { return null; }
+  }
+
+  function saveAdminSession() {
+    if (!currentCredential) return;
+    try { sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({credential: currentCredential, email: adminSessionEmail, role: adminSessionRole, lastActivity: Date.now()})); } catch (_) {}
+  }
+
+  function clearAdminSessionStorage() {
+    try { sessionStorage.removeItem(ADMIN_SESSION_KEY); } catch (_) {}
+    if (idleTimer) window.clearTimeout(idleTimer);
+    idleTimer = null;
+  }
+
+  function recordAdminActivity() {
+    if (!currentCredential) return;
+    saveAdminSession();
+    if (idleTimer) window.clearTimeout(idleTimer);
+    idleTimer = window.setTimeout(() => {
+      const saved = readAdminSession();
+      if (saved && Date.now() - saved.lastActivity < ADMIN_IDLE_MS) { armAdminIdleTimer(); return; }
+      signOutAdmin(true);
+      setAuthStatus("You were signed out after one hour of inactivity. Please sign in again.", "info");
+    }, ADMIN_IDLE_MS + 100);
+  }
+
+  function armAdminIdleTimer() {
+    if (idleTimer) window.clearTimeout(idleTimer);
+    const saved = readAdminSession();
+    if (!saved) return;
+    const remaining = ADMIN_IDLE_MS - (Date.now() - saved.lastActivity);
+    if (remaining <= 0) { signOutAdmin(true); setAuthStatus("You were signed out after one hour of inactivity. Please sign in again.", "info"); return; }
+    idleTimer = window.setTimeout(() => {
+      const latest = readAdminSession();
+      if (!latest) { signOutAdmin(true); setAuthStatus("You were signed out after one hour of inactivity. Please sign in again.", "info"); }
+      else armAdminIdleTimer();
+    }, remaining + 100);
+  }
+
+  ["click","keydown","pointerdown","touchstart","input","change"].forEach(type => {
+    document.addEventListener(type, () => { if (currentCredential) recordAdminActivity(); }, { passive: true });
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && currentCredential) recordAdminActivity();
+  });
 
   function showSignedInAdmin(email, role) {
     headerAdminEmail.textContent = email || "Administrator";
     headerAdminRole.textContent = role || "ADMIN";
+    adminSessionEmail = email || "";
+    adminSessionRole = role || "ADMIN";
     adminSessionIndicator.hidden = false;
     openAdminButton.hidden = true;
     const adminTab = $("#tab-admin");
@@ -186,6 +248,8 @@
     openAdminButton.hidden = false;
     headerAdminEmail.textContent = "";
     headerAdminRole.textContent = "ADMIN";
+    adminSessionEmail = "";
+    adminSessionRole = "ADMIN";
   }
 
   function setAuthStatus(message, state) {
@@ -259,6 +323,8 @@
       verifiedEmail.textContent = email;
       confirmation.hidden = false;
       showSignedInAdmin(email, role);
+      saveAdminSession();
+      armAdminIdleTimer();
       renderRankings();
       setAuthStatus("Your account has been verified by the SRGF Sports backend.", "success");
       // Authentication is reflected in the homepage header; no separate page is opened.
@@ -277,8 +343,9 @@
   document.addEventListener("keydown", event => {
     if (event.key === "Escape" && !adminModal.hidden) closeAdminModal();
   });
-  function signOutAdmin() {
+  function signOutAdmin(fromIdleTimeout = false) {
     currentCredential = "";
+    clearAdminSessionStorage();
     confirmation.hidden = true;
     signInWrap.hidden = false;
     clearSignedInAdmin();
@@ -289,10 +356,45 @@
       google.accounts.id.cancel();
       renderGoogleButton();
     }
-    setAuthStatus("You have signed out of the admin session.", "info");
+    if (!fromIdleTimeout) setAuthStatus("You have signed out of the admin session.", "info");
   }
   $("#sign-out-button").addEventListener("click", signOutAdmin);
   $("#header-sign-out-button").addEventListener("click", signOutAdmin);
+
+  async function restoreAdminSession() {
+    if (restoringAdminSession) return;
+    const saved = readAdminSession();
+    if (!saved) return;
+    restoringAdminSession = true;
+    currentCredential = saved.credential;
+    adminSessionEmail = saved.email || "";
+    adminSessionRole = saved.role || "ADMIN";
+    setAuthStatus("Restoring your administrator session…", "info");
+    try {
+      const result = await fetch(API_URL, {method: "POST", headers: {"Content-Type": "text/plain;charset=utf-8"}, body: JSON.stringify({action: "adminauth", idToken: currentCredential})});
+      if (!result.ok) throw new Error("HTTP " + result.status);
+      const data = await result.json();
+      if (!data || data.ok !== true || data.authorized !== true || String(data.role || "").toUpperCase() !== "ADMIN") {
+        currentCredential = ""; clearAdminSessionStorage(); clearSignedInAdmin();
+        setAuthStatus("Your saved administrator sign-in has expired. Please sign in again.", "info");
+        return;
+      }
+      const email = String(data.email || saved.email || "");
+      const role = String(data.role || saved.role || "ADMIN").toUpperCase();
+      showSignedInAdmin(email, role);
+      saveAdminSession();
+      armAdminIdleTimer();
+      confirmation.hidden = false;
+      verifiedEmail.textContent = email;
+      renderRankings();
+      setAuthStatus("Administrator session restored.", "success");
+    } catch (error) {
+      currentCredential = ""; clearAdminSessionStorage(); clearSignedInAdmin();
+      setAuthStatus("Your administrator session could not be restored. Please sign in again.", "info");
+      console.error("SRGF Sports session restore:", error);
+    } finally { restoringAdminSession = false; }
+  }
+  restoreAdminSession();
 
 
   // Sports rankings are read from separate sport-named tabs in the SRGF Sports master sheet.

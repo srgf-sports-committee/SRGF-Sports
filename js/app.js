@@ -832,7 +832,7 @@
         });
         if (matchingSport) activeRankingSheet = String(matchingSport.sheetName || matchingSport.name);
       }
-      if (pageParams.get("tab") === "rankings") activateTab("rankings", false);
+      // Do not reactivate the Rankings tab from inside a data load; that caused repeated reloads.
       try {
         const playersResponse = await fetch(API_URL + "?action=players", {method:"GET", cache:"no-store"});
         const playersData = await playersResponse.json();
@@ -918,6 +918,9 @@
   // record is added to the new master directory.
   window.SRGFSportsDirectory = { refresh: loadEvents, racketlonUrl: RACKETLON_URL };
   render();
-  loadEvents();
-  loadRankings();
+  // activateTab() loads the selected tab. Only load both datasets directly when there is no saved tab.
+  if (!allowedTabs.includes(initialTab || "")) {
+    loadEvents();
+    loadRankings();
+  }
 })();

@@ -326,5 +326,15 @@
       setStatus($("#admin-entry-status"), "Admin tools opened, but initial data could not be loaded: " + err.message, "error");
     }
   });
+  window.addEventListener("srgf-admin-tab-activated", async () => {
+    if (!idToken) return;
+    try {
+      await loadPlayers();
+      await loadMatches();
+      setStatus($("#admin-entry-status"), "Admin data refreshed.", "success");
+    } catch (err) {
+      setStatus($("#admin-entry-status"), "Admin data could not be refreshed: " + err.message, "error");
+    }
+  });
   toggleDoubles();
 })();

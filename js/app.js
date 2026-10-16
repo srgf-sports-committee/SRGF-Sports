@@ -79,6 +79,7 @@
       if (!data || data.ok !== true || !Array.isArray(data.events)) throw new Error(data && data.error || "Unexpected directory response.");
       allEvents = data.events;
       render();
+      renderInsights();
       status.textContent = "Event directory updated.";
     } catch (error) {
       render();
@@ -465,11 +466,13 @@
 
   function renderInsights() {
     const kpis = $("#insights-highlights");
+    const sportHighlightsContainer = $("#insights-sport-highlights");
     const topFive = $("#insights-top-five");
     const combined = $("#insights-combined");
-    if (!kpis || !topFive || !combined) return;
+    if (!kpis || !sportHighlightsContainer || !topFive || !combined) return;
     if (!rankingSports.length) {
-      kpis.innerHTML = '<div class="insight-empty">Rankings will appear here once the sports rating tabs are available.</div>';
+      kpis.innerHTML = '<div class="insight-empty">Scoreboard metrics will appear when rankings are available.</div>';
+      sportHighlightsContainer.innerHTML = '<div class="insight-empty">Highest ratings will appear when rankings are available.</div>';
       topFive.innerHTML = "";
       combined.innerHTML = "";
       return;
@@ -525,7 +528,12 @@
       const leader = ratingRows[0];
       return '<article class="insight-kpi kpi-elo"><span class="kpi-icon">' + (iconsByCode[code] || ["🏓","🥒","🏸","🎾"][sportIndex%4]) + '</span><small>HIGHEST ' + escapeHtml(format.toUpperCase()) + ' · ' + escapeHtml(label.toUpperCase()) + '</small><strong>' + (leader ? escapeHtml(leader.elo) : "—") + '</strong><span>' + (leader ? escapeHtml(leader.name) + ' · ' + escapeHtml(leader.id) : 'No matching players') + '</span></article>';
     });
-    kpis.innerHTML = sportHighlights.join("");
+    kpis.innerHTML =
+      '<article class="insight-kpi kpi-players"><span class="kpi-icon">👥</span><small>' + escapeHtml(categoryLabel.toUpperCase()) + ' PLAYERS</small><strong>' + totalPlayers + '</strong><span>Unique players in selected category</span></article>' +
+      '<article class="insight-kpi kpi-sports"><span class="kpi-icon">🏅</span><small>SPORTS TRACKED</small><strong>' + rankingSports.length + '</strong><span>Active Elo leaderboards</span></article>' +
+      '<article class="insight-kpi kpi-matches"><span class="kpi-icon">🔥</span><small>MATCHES RECORDED</small><strong>' + totalMatches + '</strong><span>' + escapeHtml(format) + ' matches, estimated from player records</span></article>' +
+      '<article class="insight-kpi kpi-tournaments"><span class="kpi-icon">🏆</span><small>TOURNAMENTS CONDUCTED</small><strong>' + allEvents.filter(event => ["ARCHIVED","COMPLETED","CLOSED"].includes(normalStatus(event))).length + '</strong><span>Completed events in the directory</span></article>';
+    sportHighlightsContainer.innerHTML = sportHighlights.join("");
     topFive.innerHTML = sportCards.join("");
     const medals = ["🥇","🥈","🥉"];
     const leaders = players.slice(0,10);

@@ -899,14 +899,25 @@
   $("#insights-gender-filter").addEventListener("change", () => { saveRankingFilters(); renderInsights(); });
   document.querySelectorAll('input[name="ranking-age-band"]').forEach(input => input.addEventListener("change", () => {
     updateAgeSummary("ranking");
+    const dropdown = input.closest(".age-multi-dropdown");
+    if (dropdown) dropdown.open = false;
     saveRankingFilters();
     renderRankings();
   }));
   document.querySelectorAll('input[name="insights-age-band"]').forEach(input => input.addEventListener("change", () => {
     updateAgeSummary("insights");
+    const dropdown = input.closest(".age-multi-dropdown");
+    if (dropdown) dropdown.open = false;
     saveRankingFilters();
     renderInsights();
   }));
+
+  // Dismiss either age selector when the user clicks or taps outside it.
+  document.addEventListener("click", event => {
+    document.querySelectorAll(".age-multi-dropdown[open]").forEach(dropdown => {
+      if (!dropdown.contains(event.target)) dropdown.open = false;
+    });
+  });
   $("#insights-format-filter").addEventListener("change", () => { saveRankingFilters(); renderInsights(); });
   $("#refresh-rankings").addEventListener("click", loadRankings);
   $("#toggle-ranking-edit").addEventListener("click", () => {

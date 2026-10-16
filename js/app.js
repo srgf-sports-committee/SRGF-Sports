@@ -322,7 +322,7 @@
   function renderRankingPicker() {
     const picker = $("#ranking-sport-picker");
     picker.innerHTML = "";
-    const choices = [{name:"All Sports",sheetName:"__ALL__"}, ...rankingSports];
+    const choices = [{name:"All Sports",sheetName:"__ALL__"}, {name:"Summary",sheetName:"__SUMMARY__"}, ...rankingSports];
     choices.forEach(sport => {
       const sheet = String(sport.sheetName || sport.name || "");
       const button = document.createElement("button");
@@ -409,11 +409,11 @@
       });
     }));
 
+    const isSummary = activeRankingSheet === "__SUMMARY__";
     let displayRows;
     if (isAllSports) {
-      // One combined row per player. Average only the sports in which the
-      // player has a rating row, so players are not penalised for sports
-      // they do not participate in.
+      // One combined row per player, ranked by average Elo across sports
+      // in which the player has a rating row.
       const byPlayer = new Map();
       rows.forEach(row => {
         if (!byPlayer.has(row.id)) {
@@ -437,6 +437,16 @@
         ...player,
         averageElo: player.sportsPlayed ? player.ratingTotal / player.sportsPlayed : 0
       })).sort((a, b) => b.averageElo - a.averageElo || b.sportsPlayed - a.sportsPlayed || a.name.localeCompare(b.name));
+    } else if (isSummary) {
+      // Show a separate row for every player/sport combination, with ranks
+      // calculated independently inside each sport.
+      displayRows = rows.sort((a, b) => a.sport.localeCompare(b.sport) || b.elo - a.elo || a.name.localeCompare(b.name));
+      let currentSport = "";
+      let sportRank = 0;
+      displayRows = displayRows.map(row => {
+        if (row.sport !== currentSport) { currentSport = row.sport; sportRank = 0; }
+        return {...row, rank: ++sportRank};
+      });
     } else {
       displayRows = rows.sort((a, b) => b.elo - a.elo || a.name.localeCompare(b.name));
     }
@@ -449,7 +459,7 @@
     }
 
     const tableRows = displayRows.map((row, index) => {
-      const rank = index + 1;
+      const rank = isSummary ? row.rank : index + 1;
       if (isAllSports) {
         return '<tr><td>' + rank + '</td><td>' + escapeHtml(row.id) + '</td><td><strong>' +
           escapeHtml(row.name) + '</strong></td><td>All Sports</td><td>' + escapeHtml(row.gender) + '</td><td>' +
@@ -469,7 +479,9 @@
       : '<th>Rank</th><th>Player ID</th><th>Player</th><th>Sports</th><th>Gender</th><th>Age</th><th>' + escapeHtml(format) + ' Elo</th><th>Matches</th><th>Wins</th><th>Losses</th><th>Draws</th>';
     const description = isAllSports
       ? '<p class="category-ranking-note">Combined ranking: players are ranked by their average ' + escapeHtml(format) + ' Elo across the sports they have a rating in. Sports Played shows how many sports contribute to the average.</p>'
-      : '<p class="category-ranking-note">Ranking for ' + escapeHtml(selectedSport.name || selectedSport.sheetName || "this sport") + ', ordered by ' + escapeHtml(format) + ' Elo.</p>';
+      : isSummary
+        ? '<p class="category-ranking-note">Summary: each player is listed separately in every sport they have a rating for. Rank is calculated independently within each sport, so you can compare a player’s results across all sports.</p>'
+        : '<p class="category-ranking-note">Ranking for ' + escapeHtml(selectedSport.name || selectedSport.sheetName || "this sport") + ', ordered by ' + escapeHtml(format) + ' Elo.</p>';
     content.innerHTML = description + '<div class="ranking-table-wrap"><table class="ranking-table"><thead><tr>' +
       headers + '</tr></thead><tbody>' + tableRows + '</tbody></table></div>';
   }

@@ -204,3 +204,5 @@ body:has(.hero){background:linear-gradient(180deg,#102f3c 0,#163f4b 430px,#f5f7f
 .insights-format-label{min-width:145px}
 .insights-format-label select{min-width:145px}
 @media(max-width:600px){.insights-filter-controls{width:100%}.insights-filter-controls .insights-format-label{flex:1;min-width:130px}.insights-filter-controls .insights-format-label select{width:100%;min-width:0}}
+
+.category-ranking-note{margin:-7px 0 16px;color:var(--muted);font-size:12px;line-height:1.6}

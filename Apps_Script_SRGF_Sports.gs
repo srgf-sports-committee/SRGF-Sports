@@ -14,7 +14,7 @@
  Google ID token and active ADMIN row in SPORTS_ADMINS.
 ************************************************************/
 
-const SPORTS_VERSION = "1.2.0";
+const SPORTS_VERSION = "1.3.0";
 const SPORT_MAP_ = {
   TT:  { name: "Table Tennis",     prefix: "TT"  },
   PB:  { name: "Pickleball",       prefix: "PB"  },

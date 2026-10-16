@@ -463,7 +463,11 @@
     const summary = $("#" + prefix + "-age-summary");
     if (!summary) return;
     const selected = selectedAgeBands(prefix);
-    summary.textContent = selected.length ? AGE_BANDS.filter(b=>selected.includes(b.value)).map(b=>b.label).join(", ") : "All age groups";
+    const selectAll = document.querySelector('[data-age-select-all="' + prefix + '"]');
+    if (selectAll) selectAll.checked = selected.length === AGE_BANDS.length;
+    summary.textContent = selected.length === AGE_BANDS.length || selected.length === 0
+      ? "All age groups"
+      : AGE_BANDS.filter(b=>selected.includes(b.value)).map(b=>b.label).join(", ");
   }
 
   function playerMatchesCategory(playerId, genderFilter, ageBands) {
@@ -910,6 +914,17 @@
     if (dropdown) dropdown.open = false;
     saveRankingFilters();
     renderInsights();
+  }));
+
+  document.querySelectorAll("[data-age-select-all]").forEach(input => input.addEventListener("change", () => {
+    const prefix = input.dataset.ageSelectAll;
+    document.querySelectorAll('input[name="' + prefix + '-age-band"]').forEach(band => { band.checked = input.checked; });
+    updateAgeSummary(prefix);
+    const dropdown = input.closest(".age-multi-dropdown");
+    if (dropdown) dropdown.open = false;
+    saveRankingFilters();
+    if (prefix === "ranking") renderRankings();
+    else renderInsights();
   }));
 
   // Dismiss either age selector when the user clicks or taps outside it.

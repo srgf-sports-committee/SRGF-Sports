@@ -65,6 +65,10 @@
     const archived = allEvents.filter(event => ["ARCHIVED", "COMPLETED", "CLOSED"].includes(normalStatus(event)));
     $("#upcoming-count").textContent = upcoming.length;
     $("#archived-count").textContent = archived.length;
+    const homeUpcomingCount = $("#home-upcoming-count");
+    const homeArchivedCount = $("#home-archived-count");
+    if (homeUpcomingCount) homeUpcomingCount.textContent = upcoming.length;
+    if (homeArchivedCount) homeArchivedCount.textContent = archived.length;
     renderList("#upcoming-list", upcoming, false);
     renderList("#archived-list", archived, true);
   }

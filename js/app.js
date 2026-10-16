@@ -109,6 +109,20 @@
       panel.hidden = panel.id !== name + "-panel";
     });
     if (updateUrl) updatePageUrl("tab", name === "home" ? "" : name);
+    // Refresh the data for the tab whenever the user opens it.
+    if (name === "upcoming" || name === "archived") {
+      loadEvents();
+    } else if (name === "rankings") {
+      loadRankings();
+    } else if (name === "insights") {
+      loadEvents();
+      loadRankings();
+    } else if (name === "admin") {
+      window.dispatchEvent(new CustomEvent("srgf-admin-tab-activated"));
+    } else if (name === "home") {
+      loadEvents();
+      loadRankings();
+    }
     // The selected tab is encoded in the URL so refresh restores it.
   }
 

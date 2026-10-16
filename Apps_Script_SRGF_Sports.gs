@@ -547,27 +547,110 @@ function doPost(e) {
 
 
 function loadSampleData_(ss) {
-  const ids=["SAMPLE-DEMO-001","SAMPLE-DEMO-002","SAMPLE-DEMO-003","SAMPLE-DEMO-004"];
-  const names=["Demo Player One","Demo Player Two","Demo Player Three","Demo Player Four"];
-  const ps=requireSheet_(ss,"SPORTS_PLAYERS",["Player ID","Player Name","Active","Created At"]);
-  const known=playerMap_(ss,true);
-  ids.forEach((id,i)=>{if(known[id] && known[id].name!==names[i]) throw new Error("Demo ID conflict: "+id);});
-  if(Object.keys(SPORT_MAP_).some(code=>readMatchRows_(ss,SPORT_MAP_[code]).some(m=>upper_(m["Match ID"]).indexOf("SAMPLE-")===0))) throw new Error("Sample matches already exist. Remove them before loading again.");
-  ids.forEach((id,i)=>{if(!known[id])ps.appendRow([id,names[i],true,new Date()]);});
-  const players=playerMap_(ss,false);
-  const ex=[
-    ["S1","2026-10-10","Singles",0,1,"", "",11,7,"Side 1 Win","SAMPLE DATA — singles win"],
-    ["D1","2026-10-11","Doubles",0,1,2,3,21,18,"Side 1 Win","SAMPLE DATA — doubles result"],
-    ["S2","2026-10-12","Singles",2,3,"","",9,11,"Side 2 Win","SAMPLE DATA — singles loss"],
-    ["S3","2026-10-13","Singles",0,2,"","",10,10,"Draw","SAMPLE DATA — draw"]
+  // Fictional profiles intentionally cover different age bands and both genders.
+  // Some players appear in all four sports; others only appear in one or two.
+  const demoPlayers = [
+    {id:"SAMPLE-DEMO-001",name:"Demo Player One",gender:"Male",dob:"2014-05-12",sports:["TT","PB","BAD","LT"]},
+    {id:"SAMPLE-DEMO-002",name:"Demo Player Two",gender:"Female",dob:"2011-09-24",sports:["TT","PB","BAD","LT"]},
+    {id:"SAMPLE-DEMO-003",name:"Demo Player Three",gender:"Male",dob:"2006-02-18",sports:["TT","PB","BAD"]},
+    {id:"SAMPLE-DEMO-004",name:"Demo Player Four",gender:"Female",dob:"2000-11-03",sports:["TT","PB","BAD","LT"]},
+    {id:"SAMPLE-DEMO-005",name:"Demo Player Five",gender:"Male",dob:"1988-07-16",sports:["TT","LT"]},
+    {id:"SAMPLE-DEMO-006",name:"Demo Player Six",gender:"Female",dob:"1972-01-29",sports:["TT","PB","LT"]},
+    {id:"SAMPLE-DEMO-007",name:"Demo Player Seven",gender:"Male",dob:"1960-04-08",sports:["PB","BAD","LT"]},
+    {id:"SAMPLE-DEMO-008",name:"Demo Player Eight",gender:"Female",dob:"1954-12-21",sports:["TT","BAD"]},
+    {id:"SAMPLE-DEMO-009",name:"Demo Player Nine",gender:"Male",dob:"1994-06-02",sports:["TT","PB","BAD","LT"]},
+    {id:"SAMPLE-DEMO-010",name:"Demo Player Ten",gender:"Female",dob:"1981-03-14",sports:["PB","BAD"]},
+    {id:"SAMPLE-DEMO-011",name:"Demo Player Eleven",gender:"Male",dob:"2009-08-30",sports:["TT","BAD"]},
+    {id:"SAMPLE-DEMO-012",name:"Demo Player Twelve",gender:"Female",dob:"1965-10-05",sports:["PB","LT"]}
   ];
-  let total=0; const summaries=[];
-  Object.keys(SPORT_MAP_).forEach(code=>{
-    const s=SPORT_MAP_[code]; ensureSchema_(ss,s);
-    ex.forEach(x=>{writeMatch_(ss,s,{"Match ID":"SAMPLE-"+s.prefix+"-"+x[0],"Match Date":x[1],Format:x[2],"Player 1 ID":ids[x[3]],"Player 2 ID":ids[x[4]],"Player 3 ID":x[5]===""?"":ids[x[5]],"Player 4 ID":x[6]===""?"":ids[x[6]],"Score 1":x[7],"Score 2":x[8],Result:x[9],Status:"Completed",Notes:x[10]},players);total++;});
-    summaries.push(replaySport_(ss,s));
+  const ps = requireSheet_(ss,"SPORTS_PLAYERS",["Player ID","Player Name","Active","Created At"]);
+  const playerTable = rowObjects_(ps);
+  const playerHeaders = playerTable.headers;
+  const known = playerMap_(ss,true);
+  demoPlayers.forEach(p => {
+    if (known[p.id] && known[p.id].name !== p.name) throw new Error("Demo ID conflict: "+p.id);
   });
-  return {ok:true,message:"Sample matches loaded. They use clearly labelled demo players and SAMPLE- match IDs.",playersAdded:ids.filter(id=>!known[id]).length,matchesAdded:total,sports:summaries};
+  if (Object.keys(SPORT_MAP_).some(code => readMatchRows_(ss,SPORT_MAP_[code]).some(m => upper_(m["Match ID"]).indexOf("SAMPLE-")===0))) {
+    throw new Error("Sample matches already exist. Remove them before loading again.");
+  }
+  const today = new Date();
+  function ageFromDob_(iso) {
+    const parts = iso.split("-").map(Number);
+    let age = today.getFullYear() - parts[0];
+    if (today.getMonth()+1 < parts[1] || (today.getMonth()+1 === parts[1] && today.getDate() < parts[2])) age--;
+    return age;
+  }
+  demoPlayers.forEach(p => {
+    if (known[p.id]) return;
+    const values = playerHeaders.map(header => {
+      const h = upper_(header);
+      if (h === "PLAYER ID") return p.id;
+      if (h === "PLAYER NAME") return p.name;
+      if (h === "ACTIVE") return true;
+      if (h === "CREATED AT") return new Date();
+      if (h === "GENDER" || h === "SEX") return p.gender;
+      if (h === "DATE OF BIRTH" || h === "DOB" || h === "BIRTH DATE" || h === "BIRTHDATE") return p.dob;
+      if (h === "AGE") return ageFromDob_(p.dob);
+      return "";
+    });
+    ps.appendRow(values);
+  });
+
+  const matchData = [
+    {sport:"TT",date:"2026-10-01",format:"Singles",p1:1,p2:2,s1:11,s2:7,result:"Side 1 Win",note:"Sample TT singles win"},
+    {sport:"TT",date:"2026-10-02",format:"Singles",p1:3,p2:4,s1:8,s2:11,result:"Side 2 Win",note:"Sample TT singles win for side 2"},
+    {sport:"TT",date:"2026-10-03",format:"Doubles",p1:1,p2:5,p3:2,p4:6,s1:21,s2:18,result:"Side 1 Win",note:"Sample TT doubles"},
+    {sport:"TT",date:"2026-10-04",format:"Singles",p1:9,p2:11,s1:10,s2:10,result:"Draw",note:"Sample TT draw"},
+    {sport:"TT",date:"2026-10-05",format:"Doubles",p1:3,p2:8,p3:4,p4:9,s1:16,s2:21,result:"Side 2 Win",note:"Sample TT doubles loss"},
+    {sport:"TT",date:"2026-10-06",format:"Singles",p1:1,p2:9,s1:11,s2:9,result:"Side 1 Win",note:"Sample TT singles"},
+    {sport:"PB",date:"2026-10-01",format:"Singles",p1:2,p2:3,s1:15,s2:11,result:"Side 1 Win",note:"Sample pickleball singles"},
+    {sport:"PB",date:"2026-10-02",format:"Doubles",p1:1,p2:4,p3:6,p4:7,s1:21,s2:19,result:"Side 1 Win",note:"Sample pickleball doubles"},
+    {sport:"PB",date:"2026-10-03",format:"Singles",p1:7,p2:10,s1:8,s2:11,result:"Side 2 Win",note:"Sample pickleball singles"},
+    {sport:"PB",date:"2026-10-04",format:"Doubles",p1:2,p2:12,p3:3,p4:9,s1:20,s2:20,result:"Draw",note:"Sample pickleball doubles draw"},
+    {sport:"PB",date:"2026-10-05",format:"Singles",p1:6,p2:12,s1:11,s2:6,result:"Side 1 Win",note:"Sample pickleball singles"},
+    {sport:"BAD",date:"2026-10-01",format:"Singles",p1:1,p2:3,s1:21,s2:17,result:"Side 1 Win",note:"Sample badminton singles"},
+    {sport:"BAD",date:"2026-10-02",format:"Doubles",p1:2,p2:4,p3:9,p4:10,s1:18,s2:21,result:"Side 2 Win",note:"Sample badminton doubles"},
+    {sport:"BAD",date:"2026-10-03",format:"Singles",p1:8,p2:11,s1:21,s2:21,result:"Draw",note:"Sample badminton draw"},
+    {sport:"BAD",date:"2026-10-04",format:"Doubles",p1:3,p2:11,p3:4,p4:8,s1:21,s2:14,result:"Side 1 Win",note:"Sample badminton doubles"},
+    {sport:"BAD",date:"2026-10-05",format:"Singles",p1:10,p2:2,s1:16,s2:21,result:"Side 2 Win",note:"Sample badminton singles"},
+    {sport:"LT",date:"2026-10-01",format:"Singles",p1:5,p2:6,s1:6,s2:4,result:"Side 1 Win",note:"Sample lawn tennis singles"},
+    {sport:"LT",date:"2026-10-02",format:"Doubles",p1:1,p2:4,p3:7,p4:12,s1:6,s2:6,result:"Draw",note:"Sample lawn tennis doubles draw"},
+    {sport:"LT",date:"2026-10-03",format:"Singles",p1:9,p2:2,s1:3,s2:6,result:"Side 2 Win",note:"Sample lawn tennis singles"},
+    {sport:"LT",date:"2026-10-04",format:"Doubles",p1:5,p2:6,p3:4,p4:9,s1:7,s2:5,result:"Side 1 Win",note:"Sample lawn tennis doubles"}
+  ];
+
+  const players = playerMap_(ss,false);
+  let total = 0;
+  const counts = {};
+  Object.keys(SPORT_MAP_).forEach(code => {
+    const sport = SPORT_MAP_[code];
+    ensureSchema_(ss,sport);
+    const fixtures = matchData.filter(m => sportInfo_(m.sport).prefix === sport.prefix);
+    fixtures.forEach((m,index) => {
+      const input = {
+        "Match ID":"SAMPLE-"+sport.prefix+"-"+String(index+1).padStart(3,"0"),
+        "Match Date":m.date, Format:m.format,
+        "Player 1 ID":demoPlayers[m.p1-1].id, "Player 2 ID":demoPlayers[m.p2-1].id,
+        "Player 3 ID":m.p3 ? demoPlayers[m.p3-1].id : "",
+        "Player 4 ID":m.p4 ? demoPlayers[m.p4-1].id : "",
+        "Score 1":m.s1, "Score 2":m.s2, Result:m.result,
+        Status:"Completed", Notes:"SAMPLE DATA — "+m.note
+      };
+      writeMatch_(ss,sport,input,players);
+      total++;
+    });
+    counts[sport.prefix] = fixtures.length;
+  });
+  const summaries = Object.keys(SPORT_MAP_).map(code => replaySport_(ss,SPORT_MAP_[code]));
+  return {
+    ok:true,
+    message:"20 fictional sample matches loaded across four sports, with varied singles/doubles results, wins/losses/draws, age/gender profiles, and shared plus sport-specific players.",
+    playersAdded:demoPlayers.filter(p=>!known[p.id]).length,
+    demoProfiles:demoPlayers.length,
+    matchesAdded:total,
+    matchesBySport:counts,
+    sports:summaries
+  };
 }
 function removeSampleData_(ss) {
   let removed=0;

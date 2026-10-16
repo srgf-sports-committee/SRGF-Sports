@@ -637,12 +637,14 @@
       const leader = ratingRows[0];
       return '<article class="insight-kpi kpi-elo"><span class="kpi-icon">' + (iconsByCode[code] || ["🏓","🥒","🏸","🎾"][sportIndex%4]) + '</span><small>HIGHEST ' + escapeHtml(format.toUpperCase()) + ' · ' + escapeHtml(label.toUpperCase()) + '</small><strong>' + (leader ? escapeHtml(leader.elo) : "—") + '</strong><span>' + (leader ? escapeHtml(leader.name) + ' · ' + escapeHtml(leader.id) : 'No matching players') + '</span></article>';
     });
+    const allSportsLeader = players[0];
+    const allSportsCard = '<article class="insight-kpi kpi-elo"><span class="kpi-icon">🌐</span><small>HIGHEST ALL SPORTS ELO · ' + escapeHtml(format.toUpperCase()) + '</small><strong>' + (allSportsLeader ? escapeHtml(Math.round(allSportsLeader.average)) : "—") + '</strong><span>' + (allSportsLeader ? escapeHtml(allSportsLeader.name) + ' · ' + escapeHtml(allSportsLeader.id) + ' · ' + allSportsLeader.sports.length + ' sport(s)' : 'No matching players') + '</span></article>';
     kpis.innerHTML =
       '<article class="insight-kpi kpi-players"><span class="kpi-icon">👥</span><small>' + escapeHtml(categoryLabel.toUpperCase()) + ' PLAYERS</small><strong>' + totalPlayers + '</strong><span>Unique players in selected category</span></article>' +
       '<article class="insight-kpi kpi-sports"><span class="kpi-icon">🏅</span><small>SPORTS TRACKED</small><strong>' + rankingSports.length + '</strong><span>Active Elo leaderboards</span></article>' +
       '<article class="insight-kpi kpi-matches"><span class="kpi-icon">🔥</span><small>MATCHES RECORDED</small><strong>' + totalMatches + '</strong><span>' + escapeHtml(format) + ' matches, estimated from player records</span></article>' +
       '<article class="insight-kpi kpi-tournaments"><span class="kpi-icon">🏆</span><small>TOURNAMENTS CONDUCTED</small><strong>' + allEvents.filter(event => ["ARCHIVED","COMPLETED","CLOSED"].includes(normalStatus(event))).length + '</strong><span>Completed events in the directory</span></article>';
-    sportHighlightsContainer.innerHTML = sportHighlights.join("");
+    sportHighlightsContainer.innerHTML = allSportsCard + sportHighlights.join("");
     // Full sport leaderboards are intentionally shown only in the unified Sports Ranking tab.
   }
 

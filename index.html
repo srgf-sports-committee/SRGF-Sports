@@ -76,10 +76,10 @@
         <section class="sport-ranking-launch" aria-labelledby="sport-ranking-title">
           <div class="sport-ranking-launch-head"><div><p class="eyebrow dark-eyebrow">PLAY • COMPETE • IMPROVE</p><h3 id="sport-ranking-title">Sports rankings</h3><p>View ratings and match history, or sign in as an administrator to enter results and upload a batch file.</p></div></div>
           <div class="sport-ranking-launch-grid">
-            <a class="sport-ranking-link" href="./tt.html"><span>TT</span><strong>Table Tennis</strong><small>Singles & Doubles Elo</small><b>Open rankings →</b></a>
-            <a class="sport-ranking-link" href="./pb.html"><span>PB</span><strong>Pickleball</strong><small>Singles & Doubles Elo</small><b>Open rankings →</b></a>
-            <a class="sport-ranking-link" href="./bad.html"><span>BAD</span><strong>Badminton</strong><small>Singles & Doubles Elo</small><b>Open rankings →</b></a>
-            <a class="sport-ranking-link" href="./lt.html"><span>LT</span><strong>Lawn Tennis</strong><small>Singles & Doubles Elo</small><b>Open rankings →</b></a>
+            <a class="sport-ranking-link" href="./?tab=rankings&sport=TT><span>TT</span><strong>Table Tennis</strong><small>Singles & Doubles Elo</small><b>Open rankings →</b></a>
+            <a class="sport-ranking-link" href="./?tab=rankings&sport=PB><span>PB</span><strong>Pickleball</strong><small>Singles & Doubles Elo</small><b>Open rankings →</b></a>
+            <a class="sport-ranking-link" href="./?tab=rankings&sport=BAD><span>BAD</span><strong>Badminton</strong><small>Singles & Doubles Elo</small><b>Open rankings →</b></a>
+            <a class="sport-ranking-link" href="./?tab=rankings&sport=LT><span>LT</span><strong>Lawn Tennis</strong><small>Singles & Doubles Elo</small><b>Open rankings →</b></a>
           </div>
         </section>
       </section>
@@ -141,19 +141,13 @@
       </section>
       <section id="insights-panel" class="tab-panel insights-panel" role="tabpanel" aria-labelledby="tab-insights" hidden>
         <div class="insights-hero">
-          <div><p class="eyebrow">THE SRGF SPORTS SCOREBOARD</p><h2>Big plays. Bright futures.</h2><p>Quick highlights, sport-by-sport leaders and one combined leaderboard for our four sports.</p></div>
+          <div><p class="eyebrow">THE SRGF SPORTS SCOREBOARD</p><h2>Big plays. Bright futures.</h2><p>Quick highlights and the highest-rated player in each sport. Open Sports Ranking for the full leaderboards and match history.</p></div>
           <div class="insights-trophy" aria-hidden="true">🏆</div>
         </div>
         <div class="insights-section-head"><div><p class="eyebrow dark-eyebrow">AT A GLANCE</p><h3>Key highlights</h3></div><div class="insights-filter-controls"><label class="insights-format-label">Format <select id="insights-format-filter"><option value="Singles">Singles</option><option value="Doubles">Doubles</option></select></label><label class="insights-format-label">Gender <select id="insights-gender-filter"><option value="All">All</option><option value="Male">Male</option><option value="Female">Female</option></select></label><div class="insights-format-label age-multi-filter"><span>Age group (select multiple)</span><details class="age-multi-dropdown"><summary id="insights-age-summary">All age groups</summary><div class="age-multi-options age-dropdown-options"><label><input type="checkbox" name="insights-age-band" value="under12"> Below 12</label><label><input type="checkbox" name="insights-age-band" value="12to18"> 12 to 17</label><label><input type="checkbox" name="insights-age-band" value="18to45"> 18 to 44</label><label><input type="checkbox" name="insights-age-band" value="45to60"> 45 to 59</label><label><input type="checkbox" name="insights-age-band" value="60plus"> 60+</label></div></details></div></div></div>
         <div id="insights-highlights" class="insights-kpis"><div class="insight-kpi"><span>Loading scoreboard…</span></div></div>
         <div class="insights-section-head"><div><p class="eyebrow dark-eyebrow">CURRENT LEADERS</p><h3>Highest rating in each sport</h3><p>Highest Elo for the selected Singles/Doubles format and player filters.</p></div></div>
         <div id="insights-sport-highlights" class="insights-kpis"><div class="insight-kpi"><span>Loading sport leaders…</span></div></div>
-        <div class="insights-section-head"><div><p class="eyebrow dark-eyebrow">THE LEADERS</p><h3>Top 5 players in each sport</h3><p>Ranked by Elo for the selected format.</p></div></div>
-        <div id="insights-top-five" class="insights-sport-grid"><div class="loading-state">Loading sport leaders…</div></div>
-        <div class="combined-leaderboard">
-          <div class="combined-leaderboard-head"><div><p class="eyebrow">FOUR SPORTS. ONE COMMUNITY.</p><h3>Combined sports ranking</h3><p>Average Elo across the four sports with a rating available. Sports covered is shown for context.</p></div><span class="combined-trophy" aria-hidden="true">🌟</span></div>
-          <div id="insights-combined"><div class="loading-state">Calculating combined rankings…</div></div>
-        </div>
         <p class="insights-footnote">Rankings update from the SRGF Sports rating sheets. Gender and age filters use SPORTS_PLAYERS. Multiple selected age bands are combined; age bands are non-overlapping, and 60+ starts at age 60. Elo is calculated from match outcomes; match scores do not change Elo directly.</p>
       </section>
       <p id="directory-status" class="directory-status" role="status" aria-live="polite"></p>

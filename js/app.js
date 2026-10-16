@@ -514,11 +514,18 @@
     const players = Array.from(playerMap.values()).map(p=>({...p,average:p.sports.length?p.eloTotal/p.sports.length:0})).sort((a,b)=>b.average-a.average || b.sports.length-a.sports.length || a.name.localeCompare(b.name));
     const totalPlayers = playerMap.size;
     const totalMatches = Math.round(matchAppearances / (format === "Doubles" ? 4 : 2));
-    kpis.innerHTML =
-      '<article class="insight-kpi kpi-players"><span class="kpi-icon">👥</span><small>' + escapeHtml(categoryLabel.toUpperCase()) + ' PLAYERS</small><strong>' + totalPlayers + '</strong><span>Unique players in selected category</span></article>' +
-      '<article class="insight-kpi kpi-sports"><span class="kpi-icon">🏅</span><small>SPORTS TRACKED</small><strong>' + rankingSports.length + '</strong><span>Active Elo leaderboards</span></article>' +
-      '<article class="insight-kpi kpi-matches"><span class="kpi-icon">🔥</span><small>MATCHES RECORDED</small><strong>' + totalMatches + '</strong><span>' + escapeHtml(format) + ' matches, estimated from player records</span></article>' +
-      '<article class="insight-kpi kpi-elo"><span class="kpi-icon">⚡</span><small>HIGHEST ' + escapeHtml(format.toUpperCase()) + ' ELO</small><strong>' + (Number.isFinite(highest.elo)?escapeHtml(highest.elo):"—") + '</strong><span>' + escapeHtml(highest.name) + (highest.sport?' · '+escapeHtml(highest.sport):'') + '</span></article>';
+    const sportHighlights = rankingSports.map((sport, sportIndex) => {
+      const label = sport.name || String(sport.sheetName || "").replace(/-Rating$/i,"");
+      const code = String(sport.code || sport.sheetName || label).replace(/-Rating$/i,"").toUpperCase();
+      const iconsByCode = {TT:"🏓",PB:"🥒",BAD:"🏸",LT:"🎾"};
+      const ratingRows = insightRows(sport)
+        .filter(row => playerMatchesCategory(row["Player ID"], gender, ageBands))
+        .map(row => ({name:String(row["Player Name"] || ""), id:String(row["Player ID"] || ""), elo:Number(row[eloKey] || 1000)}))
+        .sort((a,b) => b.elo-a.elo || a.name.localeCompare(b.name));
+      const leader = ratingRows[0];
+      return '<article class="insight-kpi kpi-elo"><span class="kpi-icon">' + (iconsByCode[code] || ["🏓","🥒","🏸","🎾"][sportIndex%4]) + '</span><small>HIGHEST ' + escapeHtml(format.toUpperCase()) + ' · ' + escapeHtml(label.toUpperCase()) + '</small><strong>' + (leader ? escapeHtml(leader.elo) : "—") + '</strong><span>' + (leader ? escapeHtml(leader.name) + ' · ' + escapeHtml(leader.id) : 'No matching players') + '</span></article>';
+    });
+    kpis.innerHTML = sportHighlights.join("");
     topFive.innerHTML = sportCards.join("");
     const medals = ["🥇","🥈","🥉"];
     const leaders = players.slice(0,10);

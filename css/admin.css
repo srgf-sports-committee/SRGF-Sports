@@ -43,3 +43,6 @@
 .admin-small-help { color:#77847c; font-size:.8rem; }
 @media (max-width:900px) { .admin-results-grid { grid-template-columns:1fr; } .admin-panel-heading { flex-direction:column; } }
 @media (max-width:560px) { .admin-results-card { padding:15px; } .admin-form-grid { grid-template-columns:1fr; } .admin-field-wide { grid-column:auto; } .admin-card-heading { flex-wrap:wrap; } .admin-history-controls { align-items:stretch; flex-direction:column; } .admin-history-controls label { min-width:0; } }
+.admin-sample-card { margin-bottom:18px; }
+.admin-sample-actions { display:flex; align-items:center; flex-wrap:wrap; gap:12px; }
+.admin-sample-actions .admin-status { flex:1 1 240px; }

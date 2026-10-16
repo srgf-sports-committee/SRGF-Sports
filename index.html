@@ -7,6 +7,7 @@
   <title>SRGF Sports | Community Sports & Results</title>
   <meta name="description" content="Discover upcoming SRGF sports events and browse archived results.">
   <link rel="stylesheet" href="./css/styles.css">
+  <link rel="stylesheet" href="./css/admin.css">
 </head>
 <body>
   <header class="site-header">
@@ -58,6 +59,7 @@
         <button class="tab" role="tab" aria-selected="false" aria-controls="archived-panel" id="tab-archived" data-tab="archived">Archived Results <span id="archived-count" class="tab-count">—</span></button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="rankings-panel" id="tab-rankings" data-tab="rankings">Sports Ranking</button>
         <button class="tab insights-tab" role="tab" aria-selected="false" aria-controls="insights-panel" id="tab-insights" data-tab="insights">🏆 Important Information</button>
+        <button class="tab admin-tab" role="tab" aria-selected="false" aria-controls="admin-panel" id="tab-admin" data-tab="admin" hidden>Admin</button>
       </nav>
 
       <section id="home-panel" class="tab-panel" role="tabpanel" aria-labelledby="tab-home">
@@ -141,6 +143,49 @@
         <div id="insights-sport-highlights" class="insights-kpis"><div class="insight-kpi"><span>Loading sport leaders…</span></div></div>
         <p class="insights-footnote">Rankings update from the SRGF Sports rating sheets. Gender and age filters use SPORTS_PLAYERS. Multiple selected age bands are combined; age bands are non-overlapping, and 60+ starts at age 60. Elo is calculated from match outcomes; match scores do not change Elo directly.</p>
       </section>
+
+      <section id="admin-panel" class="tab-panel admin-panel" role="tabpanel" aria-labelledby="tab-admin" hidden>
+        <div class="admin-panel-heading">
+          <div><p class="eyebrow dark-eyebrow">RESTRICTED TO APPROVED ADMINS</p><h2>Results administration</h2><p>Add a match, select an existing match to edit it, or import results for multiple sports in one batch.</p></div>
+          <span class="admin-auth-pill"><span aria-hidden="true">●</span> Signed in: <strong id="results-admin-email"></strong></span>
+        </div>
+        <div class="admin-results-grid">
+          <section class="admin-results-card">
+            <div class="admin-card-heading"><div><h3 id="admin-match-form-title">Add a match result</h3><p>Player IDs must already exist and be active in SPORTS_PLAYERS.</p></div><button class="refresh-button" id="admin-new-match" type="button">＋ New</button></div>
+            <p class="admin-inline-note">To edit a result, select <strong>Edit</strong> beside a match in the history below. Elo is calculated from the result, not the optional scores.</p>
+            <form id="admin-match-form">
+              <div class="admin-form-grid">
+                <label>Sport<select id="admin-sport" required><option value="TT">Table Tennis (TT)</option><option value="PB">Pickleball (PB)</option><option value="BAD">Badminton (Bad)</option><option value="LT">Lawn Tennis (LT)</option></select></label>
+                <label>Match ID <span class="admin-label-hint">(blank for new match)</span><input id="admin-match-id" autocomplete="off" placeholder="Generated automatically"></label>
+                <label>Match date<input id="admin-match-date" type="date" required></label>
+                <label>Format<select id="admin-format" required><option>Singles</option><option>Doubles</option></select></label>
+                <label>Status<select id="admin-status" required><option>Completed</option><option>Pending</option></select></label>
+                <label>Result<select id="admin-result"><option value="">Choose result / derive from scores</option><option>Side 1 Win</option><option>Side 2 Win</option><option>Draw</option></select></label>
+                <label>Side 1 — Player 1 ID<select id="admin-p1" required><option value="">Loading players…</option></select></label>
+                <label>Opponent / Side 1 — Player 2 ID<select id="admin-p2" required><option value="">Loading players…</option></select></label>
+                <label id="admin-p3-wrap" class="admin-field-hidden">Side 2 — Player 1 ID<select id="admin-p3"><option value="">Select player…</option></select></label>
+                <label id="admin-p4-wrap" class="admin-field-hidden">Side 2 — Player 2 ID<select id="admin-p4"><option value="">Select player…</option></select></label>
+                <label>Side 1 score <span class="admin-label-hint">(optional)</span><input id="admin-score1" type="number" step="any" placeholder="Optional"></label>
+                <label>Side 2 score <span class="admin-label-hint">(optional)</span><input id="admin-score2" type="number" step="any" placeholder="Optional"></label>
+                <label class="admin-field-wide">Notes <span class="admin-label-hint">(optional)</span><textarea id="admin-notes" rows="2" placeholder="Round, tournament or other notes"></textarea></label>
+              </div>
+              <div class="admin-form-actions"><button class="button button-dark" id="admin-save-match" type="submit">Save match result</button><span id="admin-entry-status" class="admin-status" role="status" aria-live="polite"></span></div>
+            </form>
+          </section>
+          <section class="admin-results-card">
+            <div class="admin-card-heading"><div><h3>Mass upload results</h3><p>One file can contain matches from all four sports.</p></div><button class="refresh-button" id="admin-download-template" type="button">Download template</button></div>
+            <div class="admin-upload-instructions"><strong>Before importing</strong><ul><li>Use the template headings without renaming them.</li><li>Include a unique Match ID for every row; existing IDs update matching records.</li><li>Use registered, active Player IDs. Unknown IDs are rejected and never created automatically.</li><li>The whole batch is validated before it is saved. Correct any errors and upload again.</li></ul></div>
+            <label class="admin-upload-field">Choose Excel or CSV file<input id="admin-upload-file" type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
+            <div id="admin-upload-preview"></div>
+            <div class="admin-form-actions"><button class="button button-dark" id="admin-confirm-upload" type="button" disabled>Validate and import batch</button><span id="admin-upload-status" class="admin-status" role="status" aria-live="polite"></span></div>
+          </section>
+        </div>
+        <section class="admin-results-card admin-history-card">
+          <div class="admin-card-heading"><div><h3>Match history</h3><p>Review existing results and choose a match to edit.</p></div><div class="admin-history-controls"><label>Sport<select id="admin-history-sport"><option value="ALL">All sports</option><option value="TT">Table Tennis</option><option value="PB">Pickleball</option><option value="BAD">Badminton</option><option value="LT">Lawn Tennis</option></select></label><button class="refresh-button" id="admin-refresh-matches" type="button">↻ Refresh</button></div></div>
+          <div id="admin-match-history" class="admin-match-history"><div class="loading-state">Sign in to load match history.</div></div>
+        </section>
+      </section>
+
       <p id="directory-status" class="directory-status" role="status" aria-live="polite"></p>
     </section>
   </main>
@@ -169,6 +214,8 @@
   <footer class="site-footer"><div><strong>SRGF SPORTS</strong><span>Built for an active community.</span></div><span>Community • Sports • Together</span></footer>
   
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="./js/app.js"></script>
+  <script src="./js/admin.js"></script>
 </body>
 </html>

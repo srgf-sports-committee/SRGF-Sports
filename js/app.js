@@ -380,52 +380,98 @@
     const winsKey = format + " Wins";
     const lossesKey = format + " Losses";
     const drawsKey = format + " Draws";
-    let rows = [];
-    const selectedSport = activeRankingSheet === "__ALL__" ? null :
+    const gender = $("#ranking-gender-filter")?.value || "All";
+    const ageBands = selectedAgeBands("ranking");
+    const isAllSports = activeRankingSheet === "__ALL__";
+    const selectedSport = isAllSports ? null :
       rankingSports.find(s => String(s.sheetName || s.name) === activeRankingSheet);
     const sources = selectedSport ? [selectedSport] : rankingSports;
+    const rows = [];
+
     sources.forEach(sport => rankingObjects(sport).forEach(row => {
-      if (selectedPlayer && String(row["Player ID"] || "") !== selectedPlayer) return;
-      const gender = $("#ranking-gender-filter")?.value || "All";
-      const ageBands = selectedAgeBands("ranking");
-      if (!playerMatchesCategory(row["Player ID"], gender, ageBands)) return;
-      const profile = playerProfiles.get(String(row["Player ID"] || "").trim().toUpperCase()) || {};
-      const playerGender = String(profile.Gender || profile.gender || profile.Sex || "").trim() || "—";
+      const id = String(row["Player ID"] || "").trim();
+      if (!id || (selectedPlayer && id !== selectedPlayer)) return;
+      if (!playerMatchesCategory(id, gender, ageBands)) return;
+      const profile = playerProfiles.get(id.toUpperCase()) || {};
       const age = playerAge(profile);
+      const rating = Number(row[eloKey]);
       rows.push({
-        sport: sport.name || String(sport.sheetName || "").replace(/-Rating$/i,""),
-        id: row["Player ID"] || "",
-        name: row["Player Name"] || "",
-        gender: playerGender,
+        sport: sport.name || String(sport.sheetName || "").replace(/-Rating$/i, ""),
+        id,
+        name: String(row["Player Name"] || ""),
+        gender: String(profile.Gender || profile.gender || profile.Sex || "").trim() || "—",
         age: age === null ? "—" : age,
-        elo: Number(row[eloKey] || 1000),
-        matches: row[matchesKey] || 0,
-        wins: row[winsKey] || 0,
-        losses: row[lossesKey] || 0,
-        draws: row[drawsKey] || 0
+        elo: Number.isFinite(rating) ? rating : 1000,
+        matches: Number(row[matchesKey] || 0),
+        wins: Number(row[winsKey] || 0),
+        losses: Number(row[lossesKey] || 0),
+        draws: Number(row[drawsKey] || 0)
       });
     }));
-    rows.sort((a,b) => a.sport.localeCompare(b.sport) || b.elo-a.elo || String(a.name).localeCompare(String(b.name)));
-    if (!rows.length) {
+
+    let displayRows;
+    if (isAllSports) {
+      // One combined row per player. Average only the sports in which the
+      // player has a rating row, so players are not penalised for sports
+      // they do not participate in.
+      const byPlayer = new Map();
+      rows.forEach(row => {
+        if (!byPlayer.has(row.id)) {
+          byPlayer.set(row.id, {
+            id: row.id, name: row.name, gender: row.gender, age: row.age,
+            ratingTotal: 0, sportsPlayed: 0, matches: 0, wins: 0, losses: 0, draws: 0
+          });
+        }
+        const player = byPlayer.get(row.id);
+        player.name = player.name || row.name;
+        player.gender = player.gender === "—" ? row.gender : player.gender;
+        player.age = player.age === "—" ? row.age : player.age;
+        player.ratingTotal += row.elo;
+        player.sportsPlayed += 1;
+        player.matches += row.matches;
+        player.wins += row.wins;
+        player.losses += row.losses;
+        player.draws += row.draws;
+      });
+      displayRows = Array.from(byPlayer.values()).map(player => ({
+        ...player,
+        averageElo: player.sportsPlayed ? player.ratingTotal / player.sportsPlayed : 0
+      })).sort((a, b) => b.averageElo - a.averageElo || b.sportsPlayed - a.sportsPlayed || a.name.localeCompare(b.name));
+    } else {
+      displayRows = rows.sort((a, b) => b.elo - a.elo || a.name.localeCompare(b.name));
+    }
+
+    if (!displayRows.length) {
       content.innerHTML = '<div class="empty-state"><strong>No matching rankings yet</strong>' +
         (selectedPlayer ? 'This player has no rating row for the selected sport and format.' : 'Registered players will appear here once the sports rating tabs are populated.') +
         '</div>';
       return;
     }
-    const counts = {};
-    const tableRows = rows.map(row => {
-      counts[row.sport] = (counts[row.sport] || 0) + 1;
-      const rank = counts[row.sport];
-      return '<tr><td>' + rank + '</td><td>' + escapeHtml(row.sport) + '</td><td>' +
-        escapeHtml(row.id) + '</td><td><strong>' + escapeHtml(row.name) + '</strong></td><td>' +
-        escapeHtml(row.gender) + '</td><td>' + escapeHtml(row.age) + '</td><td>' +
-        escapeHtml(row.elo) + '</td><td>' + escapeHtml(row.matches) + '</td><td>' +
-        escapeHtml(row.wins) + '</td><td>' + escapeHtml(row.losses) + '</td><td>' +
-        escapeHtml(row.draws) + '</td></tr>';
+
+    const tableRows = displayRows.map((row, index) => {
+      const rank = index + 1;
+      if (isAllSports) {
+        return '<tr><td>' + rank + '</td><td>' + escapeHtml(row.id) + '</td><td><strong>' +
+          escapeHtml(row.name) + '</strong></td><td>' + escapeHtml(row.gender) + '</td><td>' +
+          escapeHtml(row.age) + '</td><td>' + row.sportsPlayed + '</td><td><strong>' +
+          escapeHtml(row.averageElo.toFixed(1)) + '</strong></td><td>' + row.matches + '</td><td>' +
+          row.wins + '</td><td>' + row.losses + '</td><td>' + row.draws + '</td></tr>';
+      }
+      return '<tr><td>' + rank + '</td><td>' + escapeHtml(row.id) + '</td><td><strong>' +
+        escapeHtml(row.name) + '</strong></td><td>' + escapeHtml(row.gender) + '</td><td>' +
+        escapeHtml(row.age) + '</td><td>' + escapeHtml(row.elo) + '</td><td>' +
+        escapeHtml(row.matches) + '</td><td>' + escapeHtml(row.wins) + '</td><td>' +
+        escapeHtml(row.losses) + '</td><td>' + escapeHtml(row.draws) + '</td></tr>';
     }).join("");
-    content.innerHTML = '<div class="ranking-table-wrap"><table class="ranking-table"><thead><tr><th>Rank</th><th>Sport</th><th>Player ID</th><th>Player</th><th>Gender</th><th>Age</th><th>' +
-      escapeHtml(format) + ' Elo</th><th>Matches</th><th>Wins</th><th>Losses</th><th>Draws</th></tr></thead><tbody>' +
-      tableRows + '</tbody></table></div>';
+
+    const headers = isAllSports
+      ? '<th>Rank</th><th>Player ID</th><th>Player</th><th>Gender</th><th>Age</th><th>Sports Played</th><th>Average Elo</th><th>Matches</th><th>Wins</th><th>Losses</th><th>Draws</th>'
+      : '<th>Rank</th><th>Player ID</th><th>Player</th><th>Gender</th><th>Age</th><th>' + escapeHtml(format) + ' Elo</th><th>Matches</th><th>Wins</th><th>Losses</th><th>Draws</th>';
+    const description = isAllSports
+      ? '<p class="category-ranking-note">Combined ranking: players are ranked by their average ' + escapeHtml(format) + ' Elo across the sports they have a rating in. Sports Played shows how many sports contribute to the average.</p>'
+      : '<p class="category-ranking-note">Ranking for ' + escapeHtml(selectedSport.name || selectedSport.sheetName || "this sport") + ', ordered by ' + escapeHtml(format) + ' Elo.</p>';
+    content.innerHTML = description + '<div class="ranking-table-wrap"><table class="ranking-table"><thead><tr>' +
+      headers + '</tr></thead><tbody>' + tableRows + '</tbody></table></div>';
   }
 
   function renderRankings() {

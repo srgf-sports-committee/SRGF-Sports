@@ -384,10 +384,15 @@
       const gender = $("#ranking-gender-filter")?.value || "All";
       const ageBands = selectedAgeBands("ranking");
       if (!playerMatchesCategory(row["Player ID"], gender, ageBands)) return;
+      const profile = playerProfiles.get(String(row["Player ID"] || "").trim().toUpperCase()) || {};
+      const playerGender = String(profile.Gender || profile.gender || profile.Sex || "").trim() || "—";
+      const age = playerAge(profile);
       rows.push({
         sport: sport.name || String(sport.sheetName || "").replace(/-Rating$/i,""),
         id: row["Player ID"] || "",
         name: row["Player Name"] || "",
+        gender: playerGender,
+        age: age === null ? "—" : age,
         elo: Number(row[eloKey] || 1000),
         matches: row[matchesKey] || 0,
         wins: row[winsKey] || 0,
@@ -408,11 +413,12 @@
       const rank = counts[row.sport];
       return '<tr><td>' + rank + '</td><td>' + escapeHtml(row.sport) + '</td><td>' +
         escapeHtml(row.id) + '</td><td><strong>' + escapeHtml(row.name) + '</strong></td><td>' +
+        escapeHtml(row.gender) + '</td><td>' + escapeHtml(row.age) + '</td><td>' +
         escapeHtml(row.elo) + '</td><td>' + escapeHtml(row.matches) + '</td><td>' +
         escapeHtml(row.wins) + '</td><td>' + escapeHtml(row.losses) + '</td><td>' +
         escapeHtml(row.draws) + '</td></tr>';
     }).join("");
-    content.innerHTML = '<div class="ranking-table-wrap"><table class="ranking-table"><thead><tr><th>Rank</th><th>Sport</th><th>Player ID</th><th>Player</th><th>' +
+    content.innerHTML = '<div class="ranking-table-wrap"><table class="ranking-table"><thead><tr><th>Rank</th><th>Sport</th><th>Player ID</th><th>Player</th><th>Gender</th><th>Age</th><th>' +
       escapeHtml(format) + ' Elo</th><th>Matches</th><th>Wins</th><th>Losses</th><th>Draws</th></tr></thead><tbody>' +
       tableRows + '</tbody></table></div>';
   }

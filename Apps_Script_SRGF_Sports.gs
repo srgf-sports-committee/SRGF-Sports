@@ -105,7 +105,12 @@ function getPlayers_(ss, includeInactive) {
     if (!id) return;
     const activeText = upper_(p.Active);
     const active = activeText !== "FALSE" && activeText !== "NO" && activeText !== "INACTIVE";
-    byId[id] = { id, name: text_(p["Player Name"]), active };
+    byId[id] = {
+      id, name: text_(p["Player Name"]), active,
+      Gender: text_(p.Gender || p.gender || p.Sex),
+      "Date of Birth": text_(p["Date of Birth"] || p.DOB || p["Birth Date"] || p.Birthdate),
+      Age: text_(p.Age || p.age)
+    };
   });
   return Object.keys(byId).map(id => byId[id]).filter(p => includeInactive || p.active);
 }
@@ -235,7 +240,10 @@ function doGet(e) {
       return json_({ok:true,events});
     }
     if (action === "players") {
-      return json_({ok:true,players:getPlayers_(ss,false).map(p=>({ "Player ID":p.id,"Player Name":p.name,Active:true }))});
+      return json_({ok:true,players:getPlayers_(ss,false).map(p=>({
+        "Player ID":p.id, "Player Name":p.name, Active:true,
+        Gender:p.Gender, "Date of Birth":p["Date of Birth"], Age:p.Age
+      }))});
     }
     if (action === "rankings") {
       const sports = [];

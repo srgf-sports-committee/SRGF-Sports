@@ -267,9 +267,9 @@
 
   const AGE_BANDS = [
     {value:"under12",label:"Below 12",test:age=>age<12},
-    {value:"12to18",label:"12 to 18",test:age=>age>=12&&age<18},
-    {value:"18to45",label:"18 to 45",test:age=>age>=18&&age<45},
-    {value:"45to60",label:"45 to 60",test:age=>age>=45&&age<60},
+    {value:"12to18",label:"12 to 17",test:age=>age>=12&&age<18},
+    {value:"18to45",label:"18 to 44",test:age=>age>=18&&age<45},
+    {value:"45to60",label:"45 to 59",test:age=>age>=45&&age<60},
     {value:"60plus",label:"60+",test:age=>age>=60}
   ];
 

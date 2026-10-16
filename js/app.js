@@ -382,7 +382,7 @@
       const email = String(data.email || saved.email || "");
       const role = String(data.role || saved.role || "ADMIN").toUpperCase();
       showSignedInAdmin(email, role);
-      saveAdminSession();
+      try { sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify({credential: currentCredential, email, role, lastActivity: saved.lastActivity})); } catch (_) {}
       armAdminIdleTimer();
       confirmation.hidden = false;
       verifiedEmail.textContent = email;

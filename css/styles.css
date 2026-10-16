@@ -226,3 +226,6 @@ body:has(.hero){background:linear-gradient(180deg,#102f3c 0,#163f4b 430px,#f5f7f
 
 /* Keep age-group choices visible row by row instead of inside a dropdown. */
 .age-inline-filter{border:0;padding:0;margin:0;min-width:220px}.age-inline-filter legend,.age-inline-filter .age-filter-label{display:block;font-weight:700;margin-bottom:8px}.age-inline-options{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}.age-inline-options label{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-weight:500}.age-inline-options input{margin:0}
+
+/* Age-group dropdown: keep every checkbox category on its own line. */
+.age-dropdown-options{display:flex;flex-direction:column;align-items:stretch;gap:8px}.age-dropdown-options label{display:flex;align-items:center;gap:8px;white-space:nowrap}.age-dropdown-options input{margin:0;flex:0 0 auto}.age-multi-dropdown summary{cursor:pointer;white-space:nowrap}

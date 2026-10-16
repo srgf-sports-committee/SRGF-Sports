@@ -109,7 +109,7 @@
       panel.hidden = panel.id !== name + "-panel";
     });
     if (updateUrl) updatePageUrl("tab", name === "home" ? "" : name);
-    try { sessionStorage.setItem("srgfSportsActiveTab", name); } catch (_) {}
+    // The selected tab is encoded in the URL so refresh restores it.
   }
 
   function saveRankingFilters() {
@@ -150,10 +150,7 @@
   restoreRankingFilters();
   const initialParams = new URLSearchParams(window.location.search);
   const allowedTabs = ["home", "upcoming", "archived", "rankings", "insights"];
-  let initialTab = initialParams.get("tab");
-  if (!allowedTabs.includes(initialTab || "")) {
-    try { initialTab = sessionStorage.getItem("srgfSportsActiveTab"); } catch (_) {}
-  }
+  const initialTab = initialParams.get("tab");
   if (allowedTabs.includes(initialTab || "")) activateTab(initialTab, false);
   $("#refresh-upcoming").addEventListener("click", loadEvents);
   $("#refresh-archived").addEventListener("click", loadEvents);

@@ -603,7 +603,7 @@
         if (!byPlayer.has(row.id)) {
           byPlayer.set(row.id, {
             id: row.id, name: row.name, gender: row.gender, age: row.age,
-            ratingTotal: 0, sportsPlayed: 0, matches: 0, wins: 0, losses: 0, draws: 0
+            ratingTotal: 0, sportsPlayed: 0, matches: 0, wins: 0, losses: 0, draws: 0, sportDetails: []
           });
         }
         const player = byPlayer.get(row.id);
@@ -612,6 +612,7 @@
         player.age = player.age === "—" ? row.age : player.age;
         player.ratingTotal += row.elo;
         player.sportsPlayed += 1;
+        player.sportDetails.push(row);
         player.matches += row.matches;
         player.wins += row.wins;
         player.losses += row.losses;
@@ -645,11 +646,19 @@
     const tableRows = displayRows.map((row, index) => {
       const rank = isSummary ? row.rank : index + 1;
       if (isAllSports) {
-        return '<tr><td>' + rank + '</td><td>' + escapeHtml(row.id) + '</td><td><strong>' +
-          escapeHtml(row.name) + '</strong></td><td>All Sports</td><td>' + escapeHtml(row.gender) + '</td><td>' +
+        const detailsId = "ranking-sport-tree-" + String(row.id).replace(/[^a-zA-Z0-9_-]/g, "_");
+        const sportRows = row.sportDetails.slice().sort((a, b) => a.sport.localeCompare(b.sport)).map(detail =>
+          '<div class="ranking-tree-child"><span class="ranking-tree-branch" aria-hidden="true">└</span><span class="ranking-tree-sport">' +
+          escapeHtml(detail.sport) + '</span><strong>' + escapeHtml(String(detail.elo)) + ' Elo</strong>' +
+          '<span class="ranking-tree-record">' + detail.matches + ' matches · ' + detail.wins + 'W / ' + detail.losses + 'L / ' + detail.draws + 'D</span></div>'
+        ).join("");
+        return '<tr class="ranking-tree-parent"><td>' + rank + '</td><td>' + escapeHtml(row.id) + '</td><td><button type="button" class="ranking-tree-toggle" aria-expanded="false" aria-controls="' + detailsId + '" data-tree-target="' + detailsId + '"><span aria-hidden="true">▸</span><strong>' +
+          escapeHtml(row.name) + '</strong></button></td><td>All Sports</td><td>' + escapeHtml(row.gender) + '</td><td>' +
           escapeHtml(row.age) + '</td><td>' + row.sportsPlayed + '</td><td><strong>' +
           escapeHtml(row.averageElo.toFixed(1)) + '</strong></td><td>' + row.matches + '</td><td>' +
-          row.wins + '</td><td>' + row.losses + '</td><td>' + row.draws + '</td></tr>';
+          row.wins + '</td><td>' + row.losses + '</td><td>' + row.draws + '</td></tr>' +
+          '<tr class="ranking-tree-details-row" hidden><td colspan="12"><div id="' + detailsId + '" class="ranking-tree-details"><div class="ranking-tree-heading">Individual sport ratings</div>' +
+          (sportRows || '<div class="ranking-tree-child">No individual sport ratings available.</div>') + '</div></td></tr>';
       }
       return '<tr><td>' + rank + '</td><td>' + escapeHtml(row.id) + '</td><td><strong>' +
         escapeHtml(row.name) + '</strong></td><td>' + escapeHtml(row.sport) + '</td><td>' + escapeHtml(row.gender) + '</td><td>' +
@@ -668,6 +677,19 @@
         : '<p class="category-ranking-note">Ranking for ' + escapeHtml(selectedSport.name || selectedSport.sheetName || "this sport") + ', ordered by ' + escapeHtml(format) + ' Elo.</p>';
     content.innerHTML = description + '<div class="ranking-table-wrap"><table class="ranking-table"><thead><tr>' +
       headers + '</tr></thead><tbody>' + tableRows + '</tbody></table></div>';
+    if (isAllSports) {
+      content.querySelectorAll(".ranking-tree-toggle").forEach(toggle => {
+        toggle.addEventListener("click", () => {
+          const detailRow = toggle.closest("tr")?.nextElementSibling;
+          if (!detailRow || !detailRow.classList.contains("ranking-tree-details-row")) return;
+          const expanded = toggle.getAttribute("aria-expanded") === "true";
+          toggle.setAttribute("aria-expanded", String(!expanded));
+          const arrow = toggle.querySelector("span");
+          if (arrow) arrow.textContent = expanded ? "▸" : "▾";
+          detailRow.hidden = expanded;
+        });
+      });
+    }
   }
 
   function renderRankings() {

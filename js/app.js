@@ -172,9 +172,16 @@
     headerAdminRole.textContent = role || "ADMIN";
     adminSessionIndicator.hidden = false;
     openAdminButton.hidden = true;
+    const adminTab = $("#tab-admin");
+    if (adminTab) adminTab.hidden = false;
+    window.dispatchEvent(new CustomEvent("srgf-admin-session", { detail: { authorized: true, idToken: currentCredential, email: email || "" } }));
   }
 
   function clearSignedInAdmin() {
+    const adminTab = $("#tab-admin");
+    if (adminTab) adminTab.hidden = true;
+    if (document.querySelector("#admin-panel") && !document.querySelector("#admin-panel").hidden) activateTab("home");
+    window.dispatchEvent(new CustomEvent("srgf-admin-session", { detail: { authorized: false } }));
     adminSessionIndicator.hidden = true;
     openAdminButton.hidden = false;
     headerAdminEmail.textContent = "";

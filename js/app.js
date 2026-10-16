@@ -471,14 +471,10 @@
   function renderInsights() {
     const kpis = $("#insights-highlights");
     const sportHighlightsContainer = $("#insights-sport-highlights");
-    const topFive = $("#insights-top-five");
-    const combined = $("#insights-combined");
-    if (!kpis || !sportHighlightsContainer || !topFive || !combined) return;
+    if (!kpis || !sportHighlightsContainer) return;
     if (!rankingSports.length) {
       kpis.innerHTML = '<div class="insight-empty">Scoreboard metrics will appear when rankings are available.</div>';
       sportHighlightsContainer.innerHTML = '<div class="insight-empty">Highest ratings will appear when rankings are available.</div>';
-      topFive.innerHTML = "";
-      combined.innerHTML = "";
       return;
     }
     const format = $("#insights-format-filter")?.value || "Singles";
@@ -538,12 +534,7 @@
       '<article class="insight-kpi kpi-matches"><span class="kpi-icon">🔥</span><small>MATCHES RECORDED</small><strong>' + totalMatches + '</strong><span>' + escapeHtml(format) + ' matches, estimated from player records</span></article>' +
       '<article class="insight-kpi kpi-tournaments"><span class="kpi-icon">🏆</span><small>TOURNAMENTS CONDUCTED</small><strong>' + allEvents.filter(event => ["ARCHIVED","COMPLETED","CLOSED"].includes(normalStatus(event))).length + '</strong><span>Completed events in the directory</span></article>';
     sportHighlightsContainer.innerHTML = sportHighlights.join("");
-    topFive.innerHTML = sportCards.join("");
-    const medals = ["🥇","🥈","🥉"];
-    const leaders = players.slice(0,10);
-    combined.innerHTML = leaders.length ? '<div class="combined-table-wrap"><table class="combined-table"><thead><tr><th>Rank</th><th>Player</th><th>Player ID</th><th>Average Elo</th><th>Sports rated</th><th>Matches</th></tr></thead><tbody>' +
-      leaders.map((p,i)=>'<tr><td><span class="combined-rank ' + (i<3?'podium':'') + '">' + (medals[i] || (i+1)) + '</span></td><td><strong>' + escapeHtml(p.name) + '</strong></td><td>' + escapeHtml(p.id) + '</td><td><strong>' + p.average.toFixed(1) + '</strong></td><td><span class="sport-coverage">' + p.sports.length + ' / ' + rankingSports.length + '</span></td><td>' + p.matches + '</td></tr>').join("") +
-      '</tbody></table></div>' : '<div class="insight-empty">No combined ranking data for ' + escapeHtml(categoryLabel) + '. Check Gender and Date of Birth in SPORTS_PLAYERS.</div>';
+    // Full sport leaderboards are intentionally shown only in the unified Sports Ranking tab.
   }
 
   function wireRemoveRankingRows() {
@@ -561,6 +552,19 @@
       const data = await response.json();
       if (!data || data.ok !== true || !Array.isArray(data.sports)) throw new Error(data && data.error || "Ranking response is not configured yet.");
       rankingSports = data.sports;
+      const pageParams = new URLSearchParams(window.location.search);
+      const requestedSport = String(pageParams.get("sport") || "").trim().toUpperCase();
+      if (requestedSport) {
+        const matchingSport = rankingSports.find(s => {
+          const code = String(s.code || "").trim().toUpperCase();
+          const sheet = String(s.sheetName || "").replace(/-Rating$/i, "").trim().toUpperCase();
+          const name = String(s.name || "").trim().toUpperCase();
+          const aliases = {BAD:"BAD", BADMINTON:"BAD", TT:"TT", "TABLE TENNIS":"TT", PB:"PB", PICKLEBALL:"PB", LT:"LT", "LAWN TENNIS":"LT"};
+          return [code, sheet, name, aliases[code], aliases[sheet], aliases[name]].includes(requestedSport);
+        });
+        if (matchingSport) activeRankingSheet = String(matchingSport.sheetName || matchingSport.name);
+      }
+      if (pageParams.get("tab") === "rankings") activateTab("rankings");
       try {
         const playersResponse = await fetch(API_URL + "?action=players", {method:"GET", cache:"no-store"});
         const playersData = await playersResponse.json();

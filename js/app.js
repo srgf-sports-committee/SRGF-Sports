@@ -130,7 +130,7 @@
     try {
       const saved = JSON.parse(sessionStorage.getItem("srgfSportsRankingFilters") || "null");
       if (!saved) return;
-      if (saved.player != null) $("#ranking-player-filter").value = saved.player;
+      if (saved.player != null) $("#ranking-player-filter").dataset.restorePlayer = saved.player;
       if (saved.format) $("#ranking-format-filter").value = saved.format;
       if (saved.gender) $("#ranking-gender-filter").value = saved.gender;
       if (saved.insightsFormat) $("#insights-format-filter").value = saved.insightsFormat;
@@ -419,7 +419,10 @@
       Array.from(byId.entries()).sort((a,b) => a[1].localeCompare(b[1])).map(([id,name]) =>
         '<option value="' + escapeHtml(id) + '">' + escapeHtml(name + " (" + id + ")") + '</option>'
       ).join("");
+    const restorePlayer = select.dataset.restorePlayer || "";
     if (byId.has(previous)) select.value = previous;
+    else if (byId.has(restorePlayer)) select.value = restorePlayer;
+    delete select.dataset.restorePlayer;
   }
 
   function renderAllSportsRankings() {
@@ -685,7 +688,7 @@
       } catch (profileError) {
         console.warn("SRGF Sports player category details could not be loaded:", profileError);
       }
-      if (activeRankingSheet !== "__ALL__" && !rankingSports.some(s => String(s.sheetName || s.name) === activeRankingSheet)) {
+      if (activeRankingSheet !== "__ALL__" && activeRankingSheet !== "__SUMMARY__" && !rankingSports.some(s => String(s.sheetName || s.name) === activeRankingSheet)) {
         activeRankingSheet = "__ALL__";
       }
       renderRankings();

@@ -197,3 +197,10 @@ body:has(.hero){background:linear-gradient(180deg,#102f3c 0,#163f4b 430px,#f5f7f
 .insight-empty{padding:18px;text-align:center;color:#748096;font-size:12px;background:#fff;border-radius:12px}
 @media(max-width:850px){.insights-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.sport-ranking-launch-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.hero{padding:45px 20px 45px}.hero-sport-chip{font-size:9px;padding:7px 9px}.chip-racket{left:0;top:9px}.chip-play{right:0;top:52%}.chip-community{left:0;bottom:5px}.insights-hero{padding:23px 20px;border-radius:19px}.insights-trophy{flex-basis:63px;width:63px;height:63px;border-radius:20px;font-size:33px}.insights-section-head{align-items:flex-start;flex-direction:column}.insights-format-label,.insights-format-label select{width:100%}.insights-kpis{gap:9px}.insight-kpi{padding:13px;border-radius:15px}.insight-kpi>strong{font-size:24px}.insights-sport-grid{grid-template-columns:1fr}.combined-leaderboard{padding:14px}.combined-leaderboard-head h3{font-size:21px}.combined-trophy{flex-basis:48px;width:48px;height:48px;font-size:25px}}
+
+
+/* Category leaderboard controls */
+.insights-filter-controls{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.insights-format-label{min-width:145px}
+.insights-format-label select{min-width:145px}
+@media(max-width:600px){.insights-filter-controls{width:100%}.insights-filter-controls .insights-format-label{flex:1;min-width:130px}.insights-filter-controls .insights-format-label select{width:100%;min-width:0}}

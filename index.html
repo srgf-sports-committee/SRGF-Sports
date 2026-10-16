@@ -149,6 +149,16 @@
           <div><p class="eyebrow dark-eyebrow">RESTRICTED TO APPROVED ADMINS</p><h2>Results administration</h2><p>Add a match, select an existing match to edit it, or import results for multiple sports in one batch.</p></div>
           <span class="admin-auth-pill"><span aria-hidden="true">●</span> Signed in: <strong id="results-admin-email"></strong></span>
         </div>
+        <section class="admin-results-card admin-sample-card" aria-labelledby="admin-sample-title">
+          <div class="admin-card-heading">
+            <div><h3 id="admin-sample-title">Demo data</h3><p>Load or remove the 20 demo matches using the existing SRGF-Sports backend actions.</p></div>
+          </div>
+          <div class="admin-sample-actions">
+            <button class="button button-dark" id="admin-load-sample-data" type="button" disabled>Load Sample Data</button>
+            <button class="refresh-button" id="admin-remove-sample-data" type="button" disabled>Remove Sample Data</button>
+            <span id="admin-sample-status" class="admin-status" role="status" aria-live="polite"></span>
+          </div>
+        </section>
         <div class="admin-results-grid">
           <section class="admin-results-card">
             <div class="admin-card-heading"><div><h3 id="admin-match-form-title">Add a match result</h3><p>Player IDs must already exist and be active in SPORTS_PLAYERS.</p></div><button class="refresh-button" id="admin-new-match" type="button">＋ New</button></div>

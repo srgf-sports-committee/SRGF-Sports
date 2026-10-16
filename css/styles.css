@@ -229,3 +229,20 @@ body:has(.hero){background:linear-gradient(180deg,#102f3c 0,#163f4b 430px,#f5f7f
 
 /* Age-group dropdown: keep every checkbox category on its own line. */
 .age-dropdown-options{display:flex;flex-direction:column;align-items:stretch;gap:8px}.age-dropdown-options label{display:flex;align-items:center;gap:8px;white-space:nowrap}.age-dropdown-options input{margin:0;flex:0 0 auto}.age-multi-dropdown summary{cursor:pointer;white-space:nowrap}
+
+
+/* Show live event totals on the Home feature cards as well as the tabs. */
+.home-event-count {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0.55rem;
+  color: var(--muted, #5b6b63);
+  font-size: 0.9rem;
+}
+.home-event-count strong {
+  color: var(--green, #123b2b);
+  font-size: 1.8rem;
+  line-height: 1.1;
+  font-weight: 800;
+}

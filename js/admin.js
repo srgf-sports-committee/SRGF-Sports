@@ -252,6 +252,39 @@
     } catch (err) { setStatus($("#admin-upload-status"), err.message, "error"); }
     finally { button.disabled = !idToken || !stagedRows.length; }
   });
+  async function runSampleDataAction(action, button, successFallback) {
+    if (!idToken) {
+      setStatus($("#admin-sample-status"), "Sign in as an approved administrator first.", "error");
+      return;
+    }
+    const loadButton = $("#admin-load-sample-data");
+    const removeButton = $("#admin-remove-sample-data");
+    loadButton.disabled = true;
+    removeButton.disabled = true;
+    setStatus($("#admin-sample-status"), action === "loadsampledata" ? "Loading demo data…" : "Removing demo data…", "info");
+    try {
+      const data = await post({action});
+      if (data.ok === false || data.success === false) throw new Error(data.error || "The sample-data action did not complete.");
+      const detail = data.message || data.msg || successFallback;
+      setStatus($("#admin-sample-status"), detail, "success");
+      await loadPlayers();
+      await loadMatches();
+    } catch (err) {
+      setStatus($("#admin-sample-status"), err.message || "Sample-data action failed.", "error");
+    } finally {
+      const signedIn = !!idToken;
+      loadButton.disabled = !signedIn;
+      removeButton.disabled = !signedIn;
+    }
+  }
+  $("#admin-load-sample-data").addEventListener("click", () => {
+    runSampleDataAction("loadsampledata", $("#admin-load-sample-data"), "Sample data loaded.");
+  });
+  $("#admin-remove-sample-data").addEventListener("click", () => {
+    if (!window.confirm("Remove only the SRGF-Sports demo/sample records? Genuine player and match records should be preserved.")) return;
+    runSampleDataAction("removesampledata", $("#admin-remove-sample-data"), "Sample data removed.");
+  });
+
   $("#admin-download-template").addEventListener("click", () => {
     const wb = XLSX.utils.book_new();
     const results = XLSX.utils.aoa_to_sheet([["Match ID","Match Date","Sport","Format","Player 1 ID","Player 2 ID","Player 3 ID","Player 4 ID","Score 1","Score 2","Result","Status","Notes"]]);
@@ -276,9 +309,13 @@
     if (!idToken) {
       $("#results-admin-email").textContent = "";
       $("#admin-confirm-upload").disabled = true;
+      $("#admin-load-sample-data").disabled = true;
+      $("#admin-remove-sample-data").disabled = true;
       stagedRows = [];
       return;
     }
+    $("#admin-load-sample-data").disabled = false;
+    $("#admin-remove-sample-data").disabled = false;
     $("#results-admin-email").textContent = detail.email || "";
     $("#admin-confirm-upload").disabled = !stagedRows.length;
     try {

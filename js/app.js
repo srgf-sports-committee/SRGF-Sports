@@ -265,24 +265,48 @@
     return age >= 0 && age < 130 ? age : null;
   }
 
-  function playerMatchesCategory(playerId, category) {
-    if (!category || category === "Overall") return true;
-    const profile = playerProfiles.get(String(playerId || "").trim().toUpperCase());
-    if (!profile) return false;
-    if (category === "Women") {
-      const gender = String(profile.Gender || profile.gender || profile.Sex || "").trim().toLowerCase();
-      return ["female","woman","women","f"].includes(gender);
-    }
-    const age = playerAge(profile);
-    if (age === null) return false;
-    if (category === "Under12") return age < 12;
-    if (category === "Under18") return age < 18;
-    if (category === "Above60") return age > 60;
-    return true;
+  const AGE_BANDS = [
+    {value:"under12",label:"Below 12",test:age=>age<12},
+    {value:"12to18",label:"12 to 18",test:age=>age>=12&&age<18},
+    {value:"18to45",label:"18 to 45",test:age=>age>=18&&age<45},
+    {value:"45to60",label:"45 to 60",test:age=>age>=45&&age<60},
+    {value:"60plus",label:"60+",test:age=>age>=60}
+  ];
+
+  function selectedAgeBands(prefix) {
+    return Array.from(document.querySelectorAll('input[name="' + prefix + '-age-band"]:checked')).map(input=>input.value);
   }
 
-  function selectedCategoryLabel(value) {
-    return ({Overall:"Overall",Women:"Women",Under12:"Under 12",Under18:"Under 18",Above60:"Above 60"})[value] || "Overall";
+  function updateAgeSummary(prefix) {
+    const summary = $("#" + prefix + "-age-summary");
+    if (!summary) return;
+    const selected = selectedAgeBands(prefix);
+    summary.textContent = selected.length ? AGE_BANDS.filter(b=>selected.includes(b.value)).map(b=>b.label).join(", ") : "All age groups";
+  }
+
+  function playerMatchesCategory(playerId, genderFilter, ageBands) {
+    const gender = String(genderFilter || "All").toLowerCase();
+    const bands = Array.isArray(ageBands) ? ageBands : [];
+    if (gender === "all" && !bands.length) return true;
+    const profile = playerProfiles.get(String(playerId || "").trim().toUpperCase());
+    if (!profile) return false;
+    if (gender !== "all") {
+      const playerGender = String(profile.Gender || profile.gender || profile.Sex || "").trim().toLowerCase();
+      const isMale = ["male","man","m"].includes(playerGender);
+      const isFemale = ["female","woman","women","f"].includes(playerGender);
+      if (gender === "male" && !isMale) return false;
+      if (gender === "female" && !isFemale) return false;
+    }
+    if (!bands.length) return true;
+    const age = playerAge(profile);
+    if (age === null) return false;
+    return AGE_BANDS.some(b=>bands.includes(b.value) && b.test(age));
+  }
+
+  function selectedCategoryLabel(genderFilter, ageBands) {
+    const gender = !genderFilter || genderFilter === "All" ? "" : genderFilter;
+    const ages = AGE_BANDS.filter(b=>(ageBands||[]).includes(b.value)).map(b=>b.label);
+    return [gender,...ages].filter(Boolean).join(" + ") || "All";
   }
 
   function selectedRankingSport() {
@@ -357,8 +381,9 @@
     const sources = selectedSport ? [selectedSport] : rankingSports;
     sources.forEach(sport => rankingObjects(sport).forEach(row => {
       if (selectedPlayer && String(row["Player ID"] || "") !== selectedPlayer) return;
-      const category = $("#ranking-category-filter")?.value || "Overall";
-      if (!playerMatchesCategory(row["Player ID"], category)) return;
+      const gender = $("#ranking-gender-filter")?.value || "All";
+      const ageBands = selectedAgeBands("ranking");
+      if (!playerMatchesCategory(row["Player ID"], gender, ageBands)) return;
       rows.push({
         sport: sport.name || String(sport.sheetName || "").replace(/-Rating$/i,""),
         id: row["Player ID"] || "",
@@ -444,8 +469,9 @@
       return;
     }
     const format = $("#insights-format-filter")?.value || "Singles";
-    const category = $("#insights-category-filter")?.value || "Overall";
-    const categoryLabel = selectedCategoryLabel(category);
+    const gender = $("#insights-gender-filter")?.value || "All";
+    const ageBands = selectedAgeBands("insights");
+    const categoryLabel = selectedCategoryLabel(gender, ageBands);
     const eloKey = format + " Elo";
     const matchesKey = format + " Matches";
     const winsKey = format + " Wins";
@@ -455,7 +481,7 @@
     let highest = {name:"—", sport:"", elo:-Infinity};
     let matchAppearances = 0;
     const sportCards = rankingSports.map((sport, sportIndex) => {
-      const rows = insightRows(sport).filter(row => playerMatchesCategory(row["Player ID"], category)).map(row => {
+      const rows = insightRows(sport).filter(row => playerMatchesCategory(row["Player ID"], gender, ageBands)).map(row => {
         const elo = Number(row[eloKey] || 1000);
         const matches = Number(row[matchesKey] || 0);
         if (elo > highest.elo) highest = {name:row["Player Name"],sport:sport.name || sport.sheetName,elo};
@@ -572,9 +598,17 @@
 
   $("#ranking-player-filter").addEventListener("change", renderRankings);
   $("#ranking-format-filter").addEventListener("change", renderRankings);
-  $("#ranking-category-filter").addEventListener("change", renderRankings);
+  $("#ranking-gender-filter").addEventListener("change", renderRankings);
+  $("#insights-gender-filter").addEventListener("change", renderInsights);
+  document.querySelectorAll('input[name="ranking-age-band"]').forEach(input => input.addEventListener("change", () => {
+    updateAgeSummary("ranking");
+    renderRankings();
+  }));
+  document.querySelectorAll('input[name="insights-age-band"]').forEach(input => input.addEventListener("change", () => {
+    updateAgeSummary("insights");
+    renderInsights();
+  }));
   $("#insights-format-filter").addEventListener("change", renderInsights);
-  $("#insights-category-filter").addEventListener("change", renderInsights);
   $("#refresh-rankings").addEventListener("click", loadRankings);
   $("#toggle-ranking-edit").addEventListener("click", () => {
     rankingEditMode = !rankingEditMode;

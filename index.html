@@ -121,16 +121,19 @@
               <option value="All">All</option><option value="Male">Male</option><option value="Female">Female</option>
             </select>
           </label>
-          <fieldset class="age-multi-filter age-inline-filter">
-            <legend class="age-filter-label">Age group (select multiple)</legend>
-            <div class="age-multi-options age-inline-options">
-              <label><input type="checkbox" name="ranking-age-band" value="under12"> Below 12</label>
-              <label><input type="checkbox" name="ranking-age-band" value="12to18"> 12 to 17</label>
-              <label><input type="checkbox" name="ranking-age-band" value="18to45"> 18 to 44</label>
-              <label><input type="checkbox" name="ranking-age-band" value="45to60"> 45 to 59</label>
-              <label><input type="checkbox" name="ranking-age-band" value="60plus"> 60+</label>
-            </div>
-          </fieldset>
+          <div class="age-multi-filter">
+            <span class="age-filter-label">Age group (select multiple)</span>
+            <details class="age-multi-dropdown">
+              <summary id="ranking-age-summary">All age groups</summary>
+              <div class="age-multi-options age-dropdown-options">
+                <label><input type="checkbox" name="ranking-age-band" value="under12"> Below 12</label>
+                <label><input type="checkbox" name="ranking-age-band" value="12to18"> 12 to 17</label>
+                <label><input type="checkbox" name="ranking-age-band" value="18to45"> 18 to 44</label>
+                <label><input type="checkbox" name="ranking-age-band" value="45to60"> 45 to 59</label>
+                <label><input type="checkbox" name="ranking-age-band" value="60plus"> 60+</label>
+              </div>
+            </details>
+          </div>
         </div>
         <p class="category-ranking-note">Rankings are recalculated from Elo ratings after filtering players. Set Gender and Date of Birth in SPORTS_PLAYERS. Select multiple age bands to combine them (for example, Below 12 + 12 to 17 = Under 18). Age bands do not overlap: 12 to 17 means ages 12–17, 18 to 44 means ages 18–44, 45 to 59 means ages 45–59, and 60+ means 60 and above.</p>
         <div id="ranking-status" class="directory-status" role="status" aria-live="polite">Loading sports rankings…</div>
@@ -141,7 +144,7 @@
           <div><p class="eyebrow">THE SRGF SPORTS SCOREBOARD</p><h2>Big plays. Bright futures.</h2><p>Quick highlights, sport-by-sport leaders and one combined leaderboard for our four sports.</p></div>
           <div class="insights-trophy" aria-hidden="true">🏆</div>
         </div>
-        <div class="insights-section-head"><div><p class="eyebrow dark-eyebrow">AT A GLANCE</p><h3>Key highlights</h3></div><div class="insights-filter-controls"><label class="insights-format-label">Format <select id="insights-format-filter"><option value="Singles">Singles</option><option value="Doubles">Doubles</option></select></label><label class="insights-format-label">Gender <select id="insights-gender-filter"><option value="All">All</option><option value="Male">Male</option><option value="Female">Female</option></select></label><fieldset class="insights-format-label age-multi-filter age-inline-filter"><legend>Age group (select multiple)</legend><div class="age-multi-options age-inline-options"><label><input type="checkbox" name="insights-age-band" value="under12"> Below 12</label><label><input type="checkbox" name="insights-age-band" value="12to18"> 12 to 17</label><label><input type="checkbox" name="insights-age-band" value="18to45"> 18 to 44</label><label><input type="checkbox" name="insights-age-band" value="45to60"> 45 to 59</label><label><input type="checkbox" name="insights-age-band" value="60plus"> 60+</label></div></fieldset></div></div>
+        <div class="insights-section-head"><div><p class="eyebrow dark-eyebrow">AT A GLANCE</p><h3>Key highlights</h3></div><div class="insights-filter-controls"><label class="insights-format-label">Format <select id="insights-format-filter"><option value="Singles">Singles</option><option value="Doubles">Doubles</option></select></label><label class="insights-format-label">Gender <select id="insights-gender-filter"><option value="All">All</option><option value="Male">Male</option><option value="Female">Female</option></select></label><div class="insights-format-label age-multi-filter"><span>Age group (select multiple)</span><details class="age-multi-dropdown"><summary id="insights-age-summary">All age groups</summary><div class="age-multi-options age-dropdown-options"><label><input type="checkbox" name="insights-age-band" value="under12"> Below 12</label><label><input type="checkbox" name="insights-age-band" value="12to18"> 12 to 17</label><label><input type="checkbox" name="insights-age-band" value="18to45"> 18 to 44</label><label><input type="checkbox" name="insights-age-band" value="45to60"> 45 to 59</label><label><input type="checkbox" name="insights-age-band" value="60plus"> 60+</label></div></details></div></div></div>
         <div id="insights-highlights" class="insights-kpis"><div class="insight-kpi"><span>Loading scoreboard…</span></div></div>
         <div class="insights-section-head"><div><p class="eyebrow dark-eyebrow">THE LEADERS</p><h3>Top 5 players in each sport</h3><p>Ranked by Elo for the selected format.</p></div></div>
         <div id="insights-top-five" class="insights-sport-grid"><div class="loading-state">Loading sport leaders…</div></div>

@@ -40,9 +40,19 @@
     const start = field(event, "Start Date", "Start date", "startDate");
     const end = field(event, "End Date", "End date", "endDate");
     const venue = field(event, "Venue", "venue");
-    const website = safeUrl(field(event, "Website URL", "Website Url", "websiteUrl"));
-    const registration = safeUrl(field(event, "Registration URL", "Registration Url", "registrationUrl"));
-    const results = safeUrl(field(event, "Results URL", "Results Url", "resultsUrl"));
+    const website = safeUrl(field(event, "Website URL", "Website Url", "Website Link", "Event Website", "websiteUrl", "website"));
+    // Accept common spreadsheet header variants: Register URL/Link, Registration URL/Link, etc.
+    const registration = safeUrl(field(event,
+      "Registration URL", "Registration Url", "Register URL", "Register Url",
+      "Registration Link", "Register Link", "Registration Page", "Register Page",
+      "Registration", "Register", "registrationUrl", "registerUrl", "registrationLink", "registerLink"
+    ));
+    // Accept singular/plural variants for the event result link.
+    const results = safeUrl(field(event,
+      "Results URL", "Results Url", "Result URL", "Result Url",
+      "Results Link", "Result Link", "Results Page", "Result Page",
+      "Results", "Result", "resultsUrl", "resultUrl", "resultsLink", "resultLink"
+    ));
     const dates = start ? (end && end !== start ? start + " – " + end : start) : "Dates to be announced";
     const links = [];
     if (website) links.push('<a href="' + escapeHtml(website) + '" target="_blank" rel="noopener noreferrer">Event website ↗</a>');

@@ -241,8 +241,49 @@
 
   // Sports rankings are read from separate sport-named tabs in the SRGF Sports master sheet.
   let rankingSports = [];
+  let playerProfiles = new Map();
   let activeRankingSheet = "";
   let rankingEditMode = false;
+
+  function playerAge(profile) {
+    if (!profile) return null;
+    const rawAge = profile.Age ?? profile.age;
+    if (rawAge !== undefined && rawAge !== null && String(rawAge).trim() !== "" && Number.isFinite(Number(rawAge))) return Math.max(0, Math.floor(Number(rawAge)));
+    const rawDob = String(profile["Date of Birth"] || profile.DOB || profile["Birth Date"] || profile.Birthdate || "").trim();
+    if (!rawDob) return null;
+    let dob = null, match = rawDob.match(/^([0-9]{4})-([0-9]{1,2})-([0-9]{1,2})$/);
+    if (match) dob = new Date(Number(match[1]), Number(match[2])-1, Number(match[3]));
+    if (!dob) {
+      match = rawDob.match(/^([0-9]{1,2})[/. -]([0-9]{1,2})[/. -]([0-9]{4})$/);
+      if (match) dob = new Date(Number(match[3]), Number(match[2])-1, Number(match[1]));
+    }
+    if (!dob) dob = new Date(rawDob);
+    if (Number.isNaN(dob.getTime())) return null;
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    if (today.getMonth() < dob.getMonth() || (today.getMonth() === dob.getMonth() && today.getDate() < dob.getDate())) age--;
+    return age >= 0 && age < 130 ? age : null;
+  }
+
+  function playerMatchesCategory(playerId, category) {
+    if (!category || category === "Overall") return true;
+    const profile = playerProfiles.get(String(playerId || "").trim().toUpperCase());
+    if (!profile) return false;
+    if (category === "Women") {
+      const gender = String(profile.Gender || profile.gender || profile.Sex || "").trim().toLowerCase();
+      return ["female","woman","women","f"].includes(gender);
+    }
+    const age = playerAge(profile);
+    if (age === null) return false;
+    if (category === "Under12") return age < 12;
+    if (category === "Under18") return age < 18;
+    if (category === "Above60") return age > 60;
+    return true;
+  }
+
+  function selectedCategoryLabel(value) {
+    return ({Overall:"Overall",Women:"Women",Under12:"Under 12",Under18:"Under 18",Above60:"Above 60"})[value] || "Overall";
+  }
 
   function selectedRankingSport() {
     if (activeRankingSheet === "__ALL__") return null;
@@ -316,6 +357,8 @@
     const sources = selectedSport ? [selectedSport] : rankingSports;
     sources.forEach(sport => rankingObjects(sport).forEach(row => {
       if (selectedPlayer && String(row["Player ID"] || "") !== selectedPlayer) return;
+      const category = $("#ranking-category-filter")?.value || "Overall";
+      if (!playerMatchesCategory(row["Player ID"], category)) return;
       rows.push({
         sport: sport.name || String(sport.sheetName || "").replace(/-Rating$/i,""),
         id: row["Player ID"] || "",
@@ -401,6 +444,8 @@
       return;
     }
     const format = $("#insights-format-filter")?.value || "Singles";
+    const category = $("#insights-category-filter")?.value || "Overall";
+    const categoryLabel = selectedCategoryLabel(category);
     const eloKey = format + " Elo";
     const matchesKey = format + " Matches";
     const winsKey = format + " Wins";
@@ -410,12 +455,12 @@
     let highest = {name:"—", sport:"", elo:-Infinity};
     let matchAppearances = 0;
     const sportCards = rankingSports.map((sport, sportIndex) => {
-      const rows = insightRows(sport).map(row => {
+      const rows = insightRows(sport).filter(row => playerMatchesCategory(row["Player ID"], category)).map(row => {
         const elo = Number(row[eloKey] || 1000);
         const matches = Number(row[matchesKey] || 0);
         if (elo > highest.elo) highest = {name:row["Player Name"],sport:sport.name || sport.sheetName,elo};
         matchAppearances += matches;
-        const id = String(row["Player ID"]);
+        const id = String(row["Player ID"]).trim().toUpperCase();
         if (!playerMap.has(id)) playerMap.set(id, {id,name:row["Player Name"],eloTotal:0,sports:[],matches:0,wins:0,losses:0,draws:0});
         const p = playerMap.get(id);
         p.name = p.name || row["Player Name"];
@@ -431,14 +476,14 @@
       const code = String(sport.code || sport.sheetName || "").replace(/-Rating$/i,"").toLowerCase().replace(/[^a-z]/g,"");
       const icons = ["🏓","🥒","🏸","🎾"];
       return '<article class="sport-leader-card sport-tone-' + (sportIndex%4+1) + '"><div class="sport-leader-head"><span class="sport-leader-icon">' + icons[sportIndex%4] + '</span><div><p>' + escapeHtml(code.toUpperCase()) + ' LEADERBOARD</p><h4>' + escapeHtml(label) + '</h4></div><span class="leaderboard-format">' + escapeHtml(format) + '</span></div>' +
-        (rows.length ? '<ol class="top-five-list">' + rows.slice(0,5).map((r,i)=>'<li><span class="leader-rank">' + (i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1).padStart(2,"0")) + '</span><span class="leader-player"><strong>' + escapeHtml(r.name) + '</strong><small>' + escapeHtml(r.id) + ' · ' + r.matches + ' matches</small></span><strong class="leader-elo">' + escapeHtml(r.elo) + '</strong></li>').join("") + '</ol>' : '<div class="insight-empty">No players in this rating table yet.</div>') +
-        '<div class="sport-leader-footer">Top ' + Math.min(5,rows.length) + ' by ' + escapeHtml(format) + ' Elo</div></article>';
+        (rows.length ? '<ol class="top-five-list">' + rows.slice(0,5).map((r,i)=>'<li><span class="leader-rank">' + (i===0?'🥇':i===1?'🥈':i===2?'🥉':String(i+1).padStart(2,"0")) + '</span><span class="leader-player"><strong>' + escapeHtml(r.name) + '</strong><small>' + escapeHtml(r.id) + ' · ' + r.matches + ' matches</small></span><strong class="leader-elo">' + escapeHtml(r.elo) + '</strong></li>').join("") + '</ol>' : '<div class="insight-empty">No players match this category yet. Check Gender and Date of Birth in SPORTS_PLAYERS.</div>') +
+        '<div class="sport-leader-footer">Top ' + Math.min(5,rows.length) + ' ' + escapeHtml(categoryLabel) + ' players by ' + escapeHtml(format) + ' Elo</div></article>';
     });
     const players = Array.from(playerMap.values()).map(p=>({...p,average:p.sports.length?p.eloTotal/p.sports.length:0})).sort((a,b)=>b.average-a.average || b.sports.length-a.sports.length || a.name.localeCompare(b.name));
     const totalPlayers = playerMap.size;
     const totalMatches = Math.round(matchAppearances / (format === "Doubles" ? 4 : 2));
     kpis.innerHTML =
-      '<article class="insight-kpi kpi-players"><span class="kpi-icon">👥</span><small>RATED PLAYERS</small><strong>' + totalPlayers + '</strong><span>Unique players across sports</span></article>' +
+      '<article class="insight-kpi kpi-players"><span class="kpi-icon">👥</span><small>' + escapeHtml(categoryLabel.toUpperCase()) + ' PLAYERS</small><strong>' + totalPlayers + '</strong><span>Unique players in selected category</span></article>' +
       '<article class="insight-kpi kpi-sports"><span class="kpi-icon">🏅</span><small>SPORTS TRACKED</small><strong>' + rankingSports.length + '</strong><span>Active Elo leaderboards</span></article>' +
       '<article class="insight-kpi kpi-matches"><span class="kpi-icon">🔥</span><small>MATCHES RECORDED</small><strong>' + totalMatches + '</strong><span>' + escapeHtml(format) + ' matches, estimated from player records</span></article>' +
       '<article class="insight-kpi kpi-elo"><span class="kpi-icon">⚡</span><small>HIGHEST ' + escapeHtml(format.toUpperCase()) + ' ELO</small><strong>' + (Number.isFinite(highest.elo)?escapeHtml(highest.elo):"—") + '</strong><span>' + escapeHtml(highest.name) + (highest.sport?' · '+escapeHtml(highest.sport):'') + '</span></article>';
@@ -447,7 +492,7 @@
     const leaders = players.slice(0,10);
     combined.innerHTML = leaders.length ? '<div class="combined-table-wrap"><table class="combined-table"><thead><tr><th>Rank</th><th>Player</th><th>Player ID</th><th>Average Elo</th><th>Sports rated</th><th>Matches</th></tr></thead><tbody>' +
       leaders.map((p,i)=>'<tr><td><span class="combined-rank ' + (i<3?'podium':'') + '">' + (medals[i] || (i+1)) + '</span></td><td><strong>' + escapeHtml(p.name) + '</strong></td><td>' + escapeHtml(p.id) + '</td><td><strong>' + p.average.toFixed(1) + '</strong></td><td><span class="sport-coverage">' + p.sports.length + ' / ' + rankingSports.length + '</span></td><td>' + p.matches + '</td></tr>').join("") +
-      '</tbody></table></div>' : '<div class="insight-empty">No combined ranking data available yet.</div>';
+      '</tbody></table></div>' : '<div class="insight-empty">No combined ranking data for ' + escapeHtml(categoryLabel) + '. Check Gender and Date of Birth in SPORTS_PLAYERS.</div>';
   }
 
   function wireRemoveRankingRows() {
@@ -465,6 +510,15 @@
       const data = await response.json();
       if (!data || data.ok !== true || !Array.isArray(data.sports)) throw new Error(data && data.error || "Ranking response is not configured yet.");
       rankingSports = data.sports;
+      try {
+        const playersResponse = await fetch(API_URL + "?action=players", {method:"GET", cache:"no-store"});
+        const playersData = await playersResponse.json();
+        if (playersResponse.ok && playersData && playersData.ok === true && Array.isArray(playersData.players)) {
+          playerProfiles = new Map(playersData.players.map(p => [String(p["Player ID"] || "").trim().toUpperCase(), p]));
+        }
+      } catch (profileError) {
+        console.warn("SRGF Sports player category details could not be loaded:", profileError);
+      }
       if (activeRankingSheet !== "__ALL__" && !rankingSports.some(s => String(s.sheetName || s.name) === activeRankingSheet)) {
         activeRankingSheet = "__ALL__";
       }
@@ -518,7 +572,9 @@
 
   $("#ranking-player-filter").addEventListener("change", renderRankings);
   $("#ranking-format-filter").addEventListener("change", renderRankings);
+  $("#ranking-category-filter").addEventListener("change", renderRankings);
   $("#insights-format-filter").addEventListener("change", renderInsights);
+  $("#insights-category-filter").addEventListener("change", renderInsights);
   $("#refresh-rankings").addEventListener("click", loadRankings);
   $("#toggle-ranking-edit").addEventListener("click", () => {
     rankingEditMode = !rankingEditMode;

@@ -92,7 +92,14 @@
     }
   }
 
-  function activateTab(name) {
+  function updatePageUrl(key, value) {
+    const url = new URL(window.location.href);
+    if (value == null || value === "") url.searchParams.delete(key);
+    else url.searchParams.set(key, value);
+    window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+  }
+
+  function activateTab(name, updateUrl = true) {
     document.querySelectorAll("[data-tab]").forEach(button => {
       const active = button.dataset.tab === name;
       button.classList.toggle("active", active);
@@ -101,6 +108,38 @@
     document.querySelectorAll(".tab-panel").forEach(panel => {
       panel.hidden = panel.id !== name + "-panel";
     });
+    if (updateUrl) updatePageUrl("tab", name === "home" ? "" : name);
+    try { sessionStorage.setItem("srgfSportsActiveTab", name); } catch (_) {}
+  }
+
+  function saveRankingFilters() {
+    try {
+      sessionStorage.setItem("srgfSportsRankingFilters", JSON.stringify({
+        player: $("#ranking-player-filter").value,
+        format: $("#ranking-format-filter").value,
+        gender: $("#ranking-gender-filter").value,
+        ages: Array.from(document.querySelectorAll('input[name="ranking-age-band"]:checked')).map(el => el.value),
+        insightsFormat: $("#insights-format-filter").value,
+        insightsGender: $("#insights-gender-filter").value,
+        insightsAges: Array.from(document.querySelectorAll('input[name="insights-age-band"]:checked')).map(el => el.value)
+      }));
+    } catch (_) {}
+  }
+
+  function restoreRankingFilters() {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem("srgfSportsRankingFilters") || "null");
+      if (!saved) return;
+      if (saved.player != null) $("#ranking-player-filter").value = saved.player;
+      if (saved.format) $("#ranking-format-filter").value = saved.format;
+      if (saved.gender) $("#ranking-gender-filter").value = saved.gender;
+      if (saved.insightsFormat) $("#insights-format-filter").value = saved.insightsFormat;
+      if (saved.insightsGender) $("#insights-gender-filter").value = saved.insightsGender;
+      document.querySelectorAll('input[name="ranking-age-band"]').forEach(el => { el.checked = (saved.ages || []).includes(el.value); });
+      document.querySelectorAll('input[name="insights-age-band"]').forEach(el => { el.checked = (saved.insightsAges || []).includes(el.value); });
+      updateAgeSummary("ranking");
+      updateAgeSummary("insights");
+    } catch (_) {}
   }
 
   document.querySelectorAll("[data-tab]").forEach(button => button.addEventListener("click", () => activateTab(button.dataset.tab)));
@@ -108,6 +147,14 @@
     activateTab(button.dataset.tabTarget);
     document.querySelector("#section-heading").scrollIntoView({ behavior: "smooth", block: "start" });
   }));
+  restoreRankingFilters();
+  const initialParams = new URLSearchParams(window.location.search);
+  const allowedTabs = ["home", "upcoming", "archived", "rankings", "insights"];
+  let initialTab = initialParams.get("tab");
+  if (!allowedTabs.includes(initialTab || "")) {
+    try { initialTab = sessionStorage.getItem("srgfSportsActiveTab"); } catch (_) {}
+  }
+  if (allowedTabs.includes(initialTab || "")) activateTab(initialTab, false);
   $("#refresh-upcoming").addEventListener("click", loadEvents);
   $("#refresh-archived").addEventListener("click", loadEvents);
 
@@ -334,6 +381,10 @@
       button.addEventListener("click", () => {
         activeRankingSheet = sheet;
         rankingEditMode = false;
+        const code = sheet === "__ALL__" ? "ALL" : sheet === "__SUMMARY__" ? "SUMMARY" : (sport.code || sheet.replace(/-Rating$/i, ""));
+        updatePageUrl("sport", code);
+        updatePageUrl("tab", "rankings");
+        saveRankingFilters();
         renderRankings();
       });
       picker.appendChild(button);
@@ -612,7 +663,9 @@
       rankingSports = data.sports;
       const pageParams = new URLSearchParams(window.location.search);
       const requestedSport = String(pageParams.get("sport") || "").trim().toUpperCase();
-      if (requestedSport) {
+      if (requestedSport === "ALL") activeRankingSheet = "__ALL__";
+      else if (requestedSport === "SUMMARY") activeRankingSheet = "__SUMMARY__";
+      else if (requestedSport) {
         const matchingSport = rankingSports.find(s => {
           const code = String(s.code || "").trim().toUpperCase();
           const sheet = String(s.sheetName || "").replace(/-Rating$/i, "").trim().toUpperCase();
@@ -622,7 +675,7 @@
         });
         if (matchingSport) activeRankingSheet = String(matchingSport.sheetName || matchingSport.name);
       }
-      if (pageParams.get("tab") === "rankings") activateTab("rankings");
+      if (pageParams.get("tab") === "rankings") activateTab("rankings", false);
       try {
         const playersResponse = await fetch(API_URL + "?action=players", {method:"GET", cache:"no-store"});
         const playersData = await playersResponse.json();
@@ -683,19 +736,21 @@
     }
   }
 
-  $("#ranking-player-filter").addEventListener("change", renderRankings);
-  $("#ranking-format-filter").addEventListener("change", renderRankings);
-  $("#ranking-gender-filter").addEventListener("change", renderRankings);
-  $("#insights-gender-filter").addEventListener("change", renderInsights);
+  $("#ranking-player-filter").addEventListener("change", () => { saveRankingFilters(); renderRankings(); });
+  $("#ranking-format-filter").addEventListener("change", () => { saveRankingFilters(); renderRankings(); });
+  $("#ranking-gender-filter").addEventListener("change", () => { saveRankingFilters(); renderRankings(); });
+  $("#insights-gender-filter").addEventListener("change", () => { saveRankingFilters(); renderInsights(); });
   document.querySelectorAll('input[name="ranking-age-band"]').forEach(input => input.addEventListener("change", () => {
     updateAgeSummary("ranking");
+    saveRankingFilters();
     renderRankings();
   }));
   document.querySelectorAll('input[name="insights-age-band"]').forEach(input => input.addEventListener("change", () => {
     updateAgeSummary("insights");
+    saveRankingFilters();
     renderInsights();
   }));
-  $("#insights-format-filter").addEventListener("change", renderInsights);
+  $("#insights-format-filter").addEventListener("change", () => { saveRankingFilters(); renderInsights(); });
   $("#refresh-rankings").addEventListener("click", loadRankings);
   $("#toggle-ranking-edit").addEventListener("click", () => {
     rankingEditMode = !rankingEditMode;

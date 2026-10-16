@@ -322,7 +322,7 @@
   function renderRankingPicker() {
     const picker = $("#ranking-sport-picker");
     picker.innerHTML = "";
-    const choices = [{name:"All Sports",sheetName:"__ALL__"}, {name:"Summary",sheetName:"__SUMMARY__"}, ...rankingSports];
+    const choices = [{name:"All Sports",sheetName:"__ALL__"}, ...rankingSports, {name:"Summary",sheetName:"__SUMMARY__"}];
     choices.forEach(sport => {
       const sheet = String(sport.sheetName || sport.name || "");
       const button = document.createElement("button");

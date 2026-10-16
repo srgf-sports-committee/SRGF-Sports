@@ -206,3 +206,20 @@ body:has(.hero){background:linear-gradient(180deg,#102f3c 0,#163f4b 430px,#f5f7f
 @media(max-width:600px){.insights-filter-controls{width:100%}.insights-filter-controls .insights-format-label{flex:1;min-width:130px}.insights-filter-controls .insights-format-label select{width:100%;min-width:0}}
 
 .category-ranking-note{margin:-7px 0 16px;color:var(--muted);font-size:12px;line-height:1.6}
+
+
+/* Accessible multi-select age-band dropdowns */
+.age-multi-filter{display:flex;flex-direction:column;gap:6px;min-width:220px;position:relative;color:var(--muted);font-size:11px;font-weight:800;letter-spacing:.03em}
+.age-filter-label{display:block}
+.age-multi-dropdown{position:relative;font-size:13px;font-weight:600;letter-spacing:normal;color:var(--ink)}
+.age-multi-dropdown summary{list-style:none;cursor:pointer;display:block;min-width:220px;max-width:100%;padding:10px 34px 10px 12px;border:1px solid var(--line,#d9e2ee);border-radius:9px;background:#fff;color:var(--ink);font-weight:600;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.age-multi-dropdown summary::-webkit-details-marker{display:none}
+.age-multi-dropdown summary:after{content:"▾";position:absolute;right:12px;top:9px;color:var(--muted)}
+.age-multi-dropdown[open] summary:after{content:"▴"}
+.age-multi-options{position:absolute;z-index:20;top:calc(100% + 5px);left:0;min-width:100%;width:max-content;max-width:min(300px,85vw);padding:8px;background:#fff;border:1px solid var(--line,#d9e2ee);border-radius:12px;box-shadow:0 12px 32px #132b3d24;display:grid;gap:2px}
+.age-multi-options label{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:8px;cursor:pointer;color:var(--ink);font-size:13px;font-weight:600;letter-spacing:normal;white-space:nowrap}
+.age-multi-options label:hover{background:#f0f7f5}
+.age-multi-options input{accent-color:var(--forest,#176b55);width:16px;height:16px;margin:0}
+.insights-format-label.age-multi-filter{min-width:220px}
+.insights-format-label .age-multi-dropdown summary{min-width:220px}
+@media(max-width:600px){.age-multi-filter,.age-multi-dropdown,.age-multi-dropdown summary,.insights-format-label.age-multi-filter,.insights-format-label .age-multi-dropdown summary{width:100%;min-width:0}.age-multi-options{width:100%;max-width:100%;box-sizing:border-box}}

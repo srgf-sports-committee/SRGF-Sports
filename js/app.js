@@ -432,6 +432,7 @@
   // Player View is read-only and uses the SRGF Sports rating/history sheets.
   let playerViewHistory = [];
   let playerViewChart = null;
+  let playerViewFiltersInitialized = false;
   const PLAYER_VIEW_COLORS = ["#176b87","#e36a42","#5b8c45","#8757b5","#d49a18","#c44e82","#2d9d91","#5666c2","#8b6745","#697582"];
 
   function playerViewPlayerList() {
@@ -454,7 +455,11 @@
     const compare = $("#player-view-compare");
     if (!primary || !compare) return;
     const previousPrimary = primary.value;
-    const previousCompare = Array.from(compare.selectedOptions).map(option => option.value);
+    // Browsers may restore multi-select values after a reload. Start each page
+    // load with no comparison players; preserve choices only during later filter updates.
+    const previousCompare = playerViewFiltersInitialized
+      ? Array.from(compare.selectedOptions).map(option => option.value)
+      : [];
     const players = playerViewPlayerList();
     primary.innerHTML = '<option value="">Select a player</option>' + players.map(([id,name]) =>
       '<option value="' + escapeHtml(id) + '">' + escapeHtml(name) + '</option>'
@@ -468,6 +473,7 @@
       const option = Array.from(compare.options).find(item => item.value === id);
       if (option) option.selected = true;
     });
+    playerViewFiltersInitialized = true;
   }
 
   function renderPlayerViewRatings() {

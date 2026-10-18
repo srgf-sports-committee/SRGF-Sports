@@ -124,6 +124,8 @@
       loadEvents();
     } else if (name === "rankings") {
       loadRankings();
+    } else if (name === "player-view") {
+      loadRankings().then(loadPlayerViewHistory);
     } else if (name === "insights") {
       loadEvents();
       loadRankings();
@@ -173,7 +175,7 @@
   }));
   restoreRankingFilters();
   const initialParams = new URLSearchParams(window.location.search);
-  const allowedTabs = ["home", "upcoming", "archived", "rankings", "insights"];
+  const allowedTabs = ["home", "upcoming", "archived", "rankings", "player-view", "insights"];
   const initialTab = initialParams.get("tab");
   if (allowedTabs.includes(initialTab || "")) activateTab(initialTab, false);
   $("#refresh-upcoming").addEventListener("click", loadEvents);
@@ -426,6 +428,187 @@
   let playerProfiles = new Map();
   let activeRankingSheet = "";
   let rankingEditMode = false;
+
+  // Player View is read-only and uses the SRGF Sports rating/history sheets.
+  let playerViewHistory = [];
+  let playerViewChart = null;
+  const PLAYER_VIEW_COLORS = ["#176b87","#e36a42","#5b8c45","#8757b5","#d49a18","#c44e82","#2d9d91","#5666c2","#8b6745","#697582"];
+
+  function playerViewPlayerList() {
+    const byId = new Map();
+    rankingSports.forEach(sport => rankingObjects(sport).forEach(row => {
+      const id = String(row["Player ID"] || "").trim();
+      const name = String(row["Player Name"] || "").trim();
+      if (id && name && !byId.has(id)) byId.set(id, name);
+    }));
+    playerProfiles.forEach(profile => {
+      const id = String(profile["Player ID"] || profile.id || "").trim();
+      const name = String(profile["Player Name"] || profile.name || "").trim();
+      if (id && name && !byId.has(id)) byId.set(id, name);
+    });
+    return Array.from(byId.entries()).sort((a,b) => a[1].localeCompare(b[1]) || a[0].localeCompare(b[0]));
+  }
+
+  function populatePlayerViewFilters() {
+    const primary = $("#player-view-primary");
+    const compare = $("#player-view-compare");
+    if (!primary || !compare) return;
+    const previousPrimary = primary.value;
+    const previousCompare = Array.from(compare.selectedOptions).map(option => option.value);
+    const players = playerViewPlayerList();
+    primary.innerHTML = '<option value="">Select a player</option>' + players.map(([id,name]) =>
+      '<option value="' + escapeHtml(id) + '">' + escapeHtml(name) + '</option>'
+    ).join("");
+    primary.value = players.some(([id]) => id === previousPrimary) ? previousPrimary : "";
+    const excludedId = primary.value;
+    compare.innerHTML = players.filter(([id]) => id !== excludedId).map(([id,name]) =>
+      '<option value="' + escapeHtml(id) + '">' + escapeHtml(name + " (" + id + ")") + '</option>'
+    ).join("");
+    previousCompare.filter(id => id !== excludedId).forEach(id => {
+      const option = Array.from(compare.options).find(item => item.value === id);
+      if (option) option.selected = true;
+    });
+  }
+
+  function renderPlayerViewRatings() {
+    const primary = $("#player-view-primary");
+    const title = $("#player-view-rating-title");
+    const container = $("#player-view-rating-tiles");
+    if (!primary || !title || !container) return;
+    const id = primary.value;
+    const selected = playerViewPlayerList().find(item => item[0] === id);
+    if (!selected) {
+      title.textContent = "Select a player to see ratings";
+      container.innerHTML = '<div class="insight-empty">Choose a player from the filter above. Each tile shows both Singles and Doubles current Elo.</div>';
+      return;
+    }
+    title.textContent = selected[1] + " · Current ratings";
+    const tiles = rankingSports.map((sport,index) => {
+      const row = rankingObjects(sport).find(item => String(item["Player ID"] || "").trim() === id);
+      const singles = row && row["Singles Elo"] !== "" ? row["Singles Elo"] : "—";
+      const doubles = row && row["Doubles Elo"] !== "" ? row["Doubles Elo"] : "—";
+      const name = sport.name || String(sport.sheetName || "").replace(/-Rating$/i,"");
+      const code = String(sport.code || sport.sheetName || "").replace(/-Rating$/i,"").toUpperCase();
+      const icons = {TT:"🏓",PB:"🥒",BAD:"🏸",LT:"🎾"};
+      return '<article class="player-rating-tile player-rating-tone-' + (index%4+1) + '"><div class="player-rating-tile-head"><span>' + (icons[code] || "🏅") + '</span><div><small>' + escapeHtml(code) + '</small><strong>' + escapeHtml(name) + '</strong></div></div><div class="player-rating-values"><div><small>SINGLES</small><strong>' + escapeHtml(singles) + '</strong></div><div><small>DOUBLES</small><strong>' + escapeHtml(doubles) + '</strong></div></div></article>';
+    });
+    container.innerHTML = tiles.length ? tiles.join("") : '<div class="insight-empty">Sport rating sheets are not available yet.</div>';
+  }
+
+  function renderPlayerViewChart() {
+    const canvas = $("#player-view-chart");
+    const status = $("#player-view-chart-status");
+    const note = $("#player-view-legend-note");
+    if (!canvas || !status) return;
+    if (playerViewChart) { playerViewChart.destroy(); playerViewChart = null; }
+    const primaryId = $("#player-view-primary").value;
+    const primaryPlayer = playerViewPlayerList().find(item => item[0] === primaryId);
+    const compareIds = Array.from($("#player-view-compare").selectedOptions).map(option => option.value);
+    const playerIds = [primaryId].concat(compareIds).filter(Boolean);
+    const format = $("#player-view-format").value;
+    const sport = $("#player-view-sport").value;
+    if (!primaryId) {
+      status.textContent = "Select a primary player to display rating history.";
+      if (note) note.textContent = "";
+      return;
+    }
+    const selectedRows = playerViewHistory.filter(row =>
+      playerIds.includes(String(row["Player ID"] || "").trim()) &&
+      String(row.Format || "").toLowerCase() === format.toLowerCase() &&
+      (sport === "ALL" || String(row["Sport Code"] || "").toUpperCase() === sport) &&
+      Number.isFinite(Number(row["Elo After"])) &&
+      String(row["Match Date"] || "").trim()
+    );
+    if (!selectedRows.length) {
+      status.textContent = "No rating history is available for the selected player, sport and format.";
+      if (note) note.textContent = "The chart uses completed matches in the RatingHistory sheets.";
+      return;
+    }
+    const players = new Map(playerViewPlayerList());
+    const bySeries = new Map();
+    selectedRows.forEach(row => {
+      const id = String(row["Player ID"] || "").trim();
+      const code = String(row["Sport Code"] || "").toUpperCase();
+      const key = id + "|" + code;
+      if (!bySeries.has(key)) bySeries.set(key, {id,code,sport:String(row.Sport || code),name:players.get(id) || row["Player Name"] || id,byDate:new Map()});
+      const date = String(row["Match Date"]).slice(0,10);
+      const series = bySeries.get(key);
+      const previous = series.byDate.get(date);
+      if (!previous || String(row["Recorded At"] || "") >= previous.recordedAt) {
+        series.byDate.set(date,{rating:Number(row["Elo After"]),recordedAt:String(row["Recorded At"] || "")});
+      }
+    });
+    const labels = Array.from(new Set(Array.from(bySeries.values()).flatMap(s => Array.from(s.byDate.keys())))).sort();
+    const datasets = Array.from(bySeries.values()).sort((a,b) =>
+      (a.id === primaryId ? -1 : b.id === primaryId ? 1 : a.name.localeCompare(b.name)) || a.code.localeCompare(b.code)
+    ).map((series,index) => {
+      const sportIndex = ["TT","PB","BAD","LT"].indexOf(series.code);
+      const colorIndex = Math.max(0, playerIds.indexOf(series.id)) * 4 + Math.max(0,sportIndex);
+      const color = PLAYER_VIEW_COLORS[(colorIndex < 0 ? index : colorIndex) % PLAYER_VIEW_COLORS.length];
+      return {
+        label: series.name + " · " + series.sport,
+        data: labels.map(date => series.byDate.has(date) ? series.byDate.get(date).rating : null),
+        borderColor: color, backgroundColor: color, borderWidth: series.id === primaryId ? 3 : 2,
+        borderDash: series.id === primaryId ? [] : [6,4], pointRadius: 2, pointHoverRadius: 5,
+        tension: .22, spanGaps: true
+      };
+    });
+    if (typeof Chart === "undefined") {
+      status.textContent = "The chart library could not be loaded. Please refresh the page.";
+      return;
+    }
+    playerViewChart = new Chart(canvas, {
+      type: "line",
+      data: {labels, datasets},
+      options: {
+        responsive: true, maintainAspectRatio: false, interaction: {mode:"index",intersect:false},
+        plugins: {
+          legend: {position:"bottom",labels:{usePointStyle:true,boxWidth:8,padding:16}},
+          tooltip: {callbacks:{label:context => context.dataset.label + ": " + (context.parsed.y == null ? "—" : context.parsed.y.toFixed(2) + " Elo")}}
+        },
+        scales: {
+          x: {title:{display:true,text:"Calendar date"},ticks:{maxRotation:45,minRotation:0,autoSkip:true,maxTicksLimit:12}},
+          y: {title:{display:true,text:"Elo rating"},beginAtZero:false}
+        }
+      }
+    });
+    status.textContent = "Showing " + labels.length + " calendar date(s) across " + datasets.length + " player/sport line(s).";
+    if (note) note.textContent = sport === "ALL"
+      ? "All Sports plots a separate line for each selected player in each sport. " + format + " ratings are shown."
+      : "Showing " + format + " rating history for " + ($("#player-view-sport option:checked")?.textContent || sport) + ".";
+  }
+
+  async function loadPlayerViewHistory() {
+    const status = $("#player-view-chart-status");
+    if (status) status.textContent = "Loading rating history…";
+    try {
+      const response = await fetch(API_URL + "?action=ratinghistory", {method:"GET",cache:"no-store"});
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      const data = await response.json();
+      if (!data || data.ok !== true || !Array.isArray(data.history)) throw new Error(data && data.error || "Unexpected rating history response.");
+      playerViewHistory = data.history;
+      populatePlayerViewFilters();
+      renderPlayerViewRatings();
+      renderPlayerViewChart();
+    } catch (error) {
+      if (status) status.textContent = "Rating history could not be loaded. Confirm the SRGF Sports Apps Script has the ratinghistory read endpoint deployed.";
+      console.error("SRGF Sports player view history:", error);
+    }
+  }
+
+  function refreshPlayerView() {
+    loadRankings().then(loadPlayerViewHistory);
+  }
+
+  $("#player-view-primary").addEventListener("change", () => {
+    populatePlayerViewFilters();
+    renderPlayerViewRatings();
+    renderPlayerViewChart();
+  });
+  $("#player-view-format").addEventListener("change", renderPlayerViewChart);
+  $("#player-view-sport").addEventListener("change", renderPlayerViewChart);
+  $("#player-view-compare").addEventListener("change", renderPlayerViewChart);
+  $("#refresh-player-view").addEventListener("click", refreshPlayerView);
 
   function playerAge(profile) {
     if (!profile) return null;

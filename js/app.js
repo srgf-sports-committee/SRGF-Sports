@@ -75,11 +75,20 @@
     const archivedStatuses = new Set(["ARCHIVED", "COMPLETED", "CLOSED", "FINISHED", "RESULTS PUBLISHED"]);
     const upcomingStatuses = new Set(["UPCOMING", "UPCOMING SPORTS", "OPEN", "REGISTRATION OPEN", "COMING SOON", "ONGOING", "IN PROGRESS"]);
     const archived = allEvents.filter(event => archivedStatuses.has(statusKey(event)));
+    // Keep the featured Racketlon event discoverable even if it is missing from the directory sheet/API response.
+    const racketlonFallback = {
+      "Event Name": "SRGF Racketlon 2027",
+      "Sport": "Racketlon",
+      "Status": "UPCOMING",
+      "Website URL": RACKETLON_URL
+    };
+    const directoryHasRacketlon = allEvents.some(event => /racketlon/i.test(field(event, "Event Name", "eventName", "Name", "name")));
     // Count active directory events even when their status uses a variant label.
     const upcoming = allEvents.filter(event => {
       const status = statusKey(event);
       return upcomingStatuses.has(status) || (!archivedStatuses.has(status) && status !== "" && !["DRAFT", "HIDDEN", "CANCELLED", "CANCELED"].includes(status));
     });
+    if (!directoryHasRacketlon) upcoming.unshift(racketlonFallback);
     $("#upcoming-count").textContent = upcoming.length;
     $("#archived-count").textContent = archived.length;
     const homeUpcomingCount = $("#home-upcoming-count");

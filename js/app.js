@@ -519,7 +519,8 @@
     }
 
     const players = new Map(playerViewPlayerList());
-    const codes = sport === "ALL" ? ["TT","PB","BAD","LT"] : [sport];
+    const allCodes = ["TT","PB","BAD","LT"];
+    const codes = sport === "ALL" ? allCodes : [sport];
     const months = [];
     const now = new Date();
     for (let year=2026, month=0; year<now.getFullYear() || (year===now.getFullYear() && month<=now.getMonth()); ) {
@@ -532,6 +533,7 @@
       return;
     }
 
+    const rowDate = row => String(row["Match Date"] || "").slice(0,10);
     const selectedRows = playerViewHistory.filter(row =>
       playerIds.includes(String(row["Player ID"] || "").trim()) &&
       String(row.Format || "").toLowerCase() === format.toLowerCase() &&
@@ -539,46 +541,56 @@
       Number.isFinite(Number(row["Elo After"])) &&
       String(row["Match Date"] || "").trim()
     );
-    const rowDate = row => String(row["Match Date"] || "").slice(0,10);
-    const bySeries = new Map();
-    // Include each selected player/sport combination, even if they have no
-    // match yet; the Elo starting point is 1000 and then carries forward.
-    playerIds.forEach(id => codes.forEach(code => {
-      const key = id + "|" + code;
-      const first = selectedRows.filter(row => String(row["Player ID"] || "").trim()===id && String(row["Sport Code"] || "").toUpperCase()===code)
-        .sort((a,b)=>rowDate(a).localeCompare(rowDate(b)) || String(a["Recorded At"]||"").localeCompare(String(b["Recorded At"]||"")))[0];
-      bySeries.set(key,{
-        id,code,name:players.get(id)||id,
-        sport:String((first && first.Sport) || ({TT:"Table Tennis",PB:"Pickleball",BAD:"Badminton",LT:"Lawn Tennis"})[code] || code),
-        rows:selectedRows.filter(row=>String(row["Player ID"]||"").trim()===id && String(row["Sport Code"]||"").toUpperCase()===code)
-          .sort((a,b)=>rowDate(a).localeCompare(rowDate(b)) || String(a["Recorded At"]||"").localeCompare(String(b["Recorded At"]||""))),
-        byMonth:new Map()
-      });
-    }));
+    const seriesList = [];
 
-    bySeries.forEach(series => {
-      let carryRating = 1000;
-      // If history exists before January 2026, carry its last rating into Jan.
-      series.rows.filter(row=>rowDate(row)<"2026-01-01").forEach(row=>{carryRating=Number(row["Elo After"]);});
-      const rowsFrom2026 = series.rows.filter(row=>rowDate(row)>="2026-01-01");
-      months.forEach(monthKey => {
-        const inMonth = rowsFrom2026.filter(row=>rowDate(row).slice(0,7)===monthKey);
-        if (inMonth.length) carryRating = Number(inMonth[inMonth.length-1]["Elo After"]);
-        series.byMonth.set(monthKey,carryRating);
+    playerIds.forEach(id => {
+      const sportMonthly = {};
+      codes.forEach(code => {
+        const rows = selectedRows.filter(row =>
+          String(row["Player ID"] || "").trim() === id &&
+          String(row["Sport Code"] || "").toUpperCase() === code
+        ).sort((a,b) => rowDate(a).localeCompare(rowDate(b)) ||
+          String(a["Recorded At"] || "").localeCompare(String(b["Recorded At"] || "")));
+        let carryRating = 1000;
+        rows.filter(row => rowDate(row) < "2026-01-01").forEach(row => {
+          carryRating = Number(row["Elo After"]);
+        });
+        const from2026 = rows.filter(row => rowDate(row) >= "2026-01-01");
+        sportMonthly[code] = months.map(monthKey => {
+          const inMonth = from2026.filter(row => rowDate(row).slice(0,7) === monthKey);
+          if (inMonth.length) carryRating = Number(inMonth[inMonth.length-1]["Elo After"]);
+          return carryRating;
+        });
       });
+
+      if (sport === "ALL") {
+        // All Sports is one average rating per player, not four separate sport lines.
+        const average = months.map((_, monthIndex) => {
+          const values = allCodes.map(code => sportMonthly[code][monthIndex]).filter(Number.isFinite);
+          return values.length ? values.reduce((sum,value)=>sum+value,0)/values.length : null;
+        });
+        seriesList.push({id,code:"ALL",name:players.get(id)||id,sport:"All Sports average",values:average});
+      } else {
+        seriesList.push({
+          id,code:sport,name:players.get(id)||id,
+          sport:String((selectedRows.find(row=>String(row["Player ID"]||"").trim()===id && String(row["Sport Code"]||"").toUpperCase()===sport)||{}).Sport ||
+            ({TT:"Table Tennis",PB:"Pickleball",BAD:"Badminton",LT:"Lawn Tennis"})[sport] || sport),
+          values:sportMonthly[sport]
+        });
+      }
     });
 
     const labels = months.map(key => {
       const [year,month]=key.split("-").map(Number);
       return new Date(year,month-1,1).toLocaleDateString(undefined,{month:"short",year:"numeric"});
     });
-    const datasets = Array.from(bySeries.values()).map((series,index) => {
-      const sportIndex = ["TT","PB","BAD","LT"].indexOf(series.code);
+    const datasets = seriesList.map((series,index) => {
       const playerIndex = Math.max(0,playerIds.indexOf(series.id));
-      const color = PLAYER_VIEW_COLORS[(playerIndex*4+Math.max(0,sportIndex))%PLAYER_VIEW_COLORS.length];
+      const sportIndex = series.code === "ALL" ? 0 : Math.max(0,allCodes.indexOf(series.code));
+      const color = PLAYER_VIEW_COLORS[(playerIndex*4+sportIndex)%PLAYER_VIEW_COLORS.length];
       return {
-        label:series.name+" · "+series.sport,
-        data:months.map(month=>series.byMonth.get(month)),
+        label: sport === "ALL" ? series.name+" · All Sports average" : series.name+" · "+series.sport,
+        data:series.values,
         borderColor:color,backgroundColor:color,borderWidth:series.id===primaryId?3:2,
         borderDash:series.id===primaryId?[]:[6,4],pointRadius:2,pointHoverRadius:5,
         tension:.22,spanGaps:true
@@ -598,13 +610,13 @@
         },
         scales:{
           x:{title:{display:true,text:"Month"},ticks:{maxRotation:0,minRotation:0,autoSkip:false}},
-          y:{title:{display:true,text:"Monthly Elo rating"},beginAtZero:false}
+          y:{title:{display:true,text:sport==="ALL"?"Average monthly Elo across 4 sports":"Monthly Elo rating"},beginAtZero:false}
         }
       }
     });
     status.textContent="Showing monthly ratings from Jan 2026 to "+labels[labels.length-1]+". Missing months carry forward the previous rating.";
     if(note) note.textContent=sport==="ALL"
-      ?"All Sports plots one line per selected player for each sport. Each month uses the latest rating change that month; otherwise the prior rating is carried forward. "+format+" ratings are shown."
+      ?"All Sports shows one line per selected player: the average of their Table Tennis, Pickleball, Badminton and Lawn Tennis ratings for "+format+". Each sport carries its last rating forward when there is no match that month."
       :"Showing "+format+" monthly rating history for "+($("#player-view-sport option:checked")?.textContent||sport)+".";
   }
 

@@ -423,3 +423,78 @@ body:has(.hero){background:linear-gradient(180deg,#102f3c 0,#163f4b 430px,#f5f7f
   .site-header .tabs{margin:0 -12px;padding:0 12px;gap:3px}
   .site-header .tab{padding:12px 13px 11px;font-size:12px}
 }
+
+
+/* Navigation polish: premium pill tabs while keeping them in the green header. */
+.header-tabs-wrap{padding-top:10px}
+.site-header .tabs{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  border-top:1px solid #ffffff20;
+  padding:10px 0 0;
+  overflow-x:auto;
+}
+.site-header .tab{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:42px;
+  padding:10px 18px;
+  color:#d4e6df;
+  background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.10);
+  border-bottom:1px solid rgba(255,255,255,.10);
+  border-radius:13px 13px 9px 9px;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.015em;
+  transition:background .18s ease,color .18s ease,transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+}
+.site-header .tab:hover:not(.active){
+  color:#fff;
+  background:rgba(255,255,255,.14);
+  border-color:rgba(255,255,255,.28);
+  transform:translateY(-2px);
+}
+.site-header .tab.active{
+  color:#123c39;
+  background:linear-gradient(135deg,#e6ff9b 0%,#c9f66d 52%,#a8f0bd 100%);
+  border-color:#d9ff91;
+  border-bottom-color:#d9ff91;
+  box-shadow:0 5px 16px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.65);
+}
+.site-header .tab.active::after{
+  content:"";
+  position:absolute;
+  left:17px;
+  right:17px;
+  bottom:-4px;
+  height:3px;
+  border-radius:999px;
+  background:#f5ffd8;
+}
+.site-header .tab:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.site-header .tab-count{
+  min-width:21px;
+  height:21px;
+  margin-left:1px;
+  padding:0 6px;
+  border-radius:7px;
+  background:rgba(255,255,255,.14);
+  color:inherit;
+  font-size:10px;
+}
+.site-header .tab.active .tab-count{background:rgba(18,60,57,.12)}
+@media(max-width:760px){
+  .header-tabs-wrap{padding:8px 12px 0}
+  .site-header .tabs{margin:0 -12px;padding:8px 12px 3px;gap:7px}
+  .site-header .tab{min-height:39px;padding:9px 13px;border-radius:11px 11px 8px 8px;font-size:11px}
+  .site-header .tab.active::after{left:13px;right:13px}
+}
+@media(prefers-reduced-motion:reduce){
+  .site-header .tab{transition:none}
+  .site-header .tab:hover:not(.active){transform:none}
+}

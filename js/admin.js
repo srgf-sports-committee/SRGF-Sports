@@ -52,6 +52,28 @@
     }).join("");
     ["#admin-p1","#admin-p2","#admin-p3","#admin-p4"].forEach(sel => { if ($(sel)) $(sel).innerHTML = html; });
   }
+  async function loadFeaturedEvents() {
+    const select = $("#admin-featured-event");
+    if (!select) return;
+    const data = await get("events");
+    const events = data.events || [];
+    const featured = events.find(event => /^(TRUE|YES|1|FEATURED)$/i.test(String(event.Featured || event["Is Featured"] || event["Featured Event"] || "").trim()));
+    const racketlon = events.find(event => /racketlon/i.test(String(event["Event Name"] || event.eventName || "")));
+    select.innerHTML = events.length
+      ? events.map(event => {
+          const id = String(event["Event ID"] || event.eventId || "").trim();
+          const name = String(event["Event Name"] || event.eventName || "SRGF Sports Event").trim();
+          const sport = String(event.Sport || "").trim();
+          const status = String(event.Status || "").trim();
+          return '<option value="' + esc(id) + '">' + esc(name + (sport ? " — " + sport : "") + (status ? " (" + status + ")" : "")) + '</option>';
+        }).join("")
+      : '<option value="">No events available in the directory</option>';
+    const selected = featured ? String(featured["Event ID"] || featured.eventId || "") : racketlon ? String(racketlon["Event ID"] || racketlon.eventId || "") : "";
+    if (selected) select.value = selected;
+    $("#admin-save-featured-event").disabled = !idToken || !events.length || !select.value;
+    setStatus($("#admin-featured-status"), featured ? "Current featured event: " + (featured["Event Name"] || featured.eventName || "Selected event") : "No featured flag is set yet. The Home page is using its Racketlon default until you save a choice.", "info");
+  }
+
   async function loadPlayers() {
     const data = await get("players");
     players = data.players || [];
@@ -140,6 +162,25 @@
   $("#admin-format").addEventListener("change", toggleDoubles);
   $("#admin-new-match").addEventListener("click", clearForm);
   $("#admin-history-sport").addEventListener("change", renderMatches);
+  $("#admin-save-featured-event").addEventListener("click", async () => {
+    const button = $("#admin-save-featured-event");
+    const eventId = $("#admin-featured-event").value;
+    if (!idToken) { setStatus($("#admin-featured-status"), "Sign in as an approved admin to change the Featured Event.", "error"); return; }
+    if (!eventId) { setStatus($("#admin-featured-status"), "Choose an event first.", "error"); return; }
+    button.disabled = true;
+    setStatus($("#admin-featured-status"), "Saving Featured Event…", "info");
+    try {
+      const result = await post({action:"setfeaturedevent", eventId});
+      setStatus($("#admin-featured-status"), result.message || "Featured Event updated.", "success");
+      await loadFeaturedEvents();
+      window.dispatchEvent(new CustomEvent("srgf-featured-event-updated"));
+    } catch (err) {
+      setStatus($("#admin-featured-status"), "Could not update Featured Event: " + err.message, "error");
+    } finally {
+      button.disabled = !idToken || !$("#admin-featured-event").value;
+    }
+  });
+
   $("#admin-refresh-matches").addEventListener("click", async () => {
     try { await loadMatches(); setStatus($("#admin-entry-status"), "Match history refreshed.", "success"); }
     catch (e) { setStatus($("#admin-entry-status"), e.message, "error"); }
@@ -308,6 +349,7 @@
     idToken = detail.authorized ? (detail.idToken || "") : "";
     if (!idToken) {
       $("#results-admin-email").textContent = "";
+      $("#admin-save-featured-event").disabled = true;
       $("#admin-confirm-upload").disabled = true;
       $("#admin-load-sample-data").disabled = true;
       $("#admin-remove-sample-data").disabled = true;
@@ -316,6 +358,12 @@
     }
     $("#admin-load-sample-data").disabled = false;
     $("#admin-remove-sample-data").disabled = false;
+    $("#admin-save-featured-event").disabled = false;
+    try {
+      await loadFeaturedEvents();
+    } catch (err) {
+      setStatus($("#admin-featured-status"), "Could not load events: " + err.message, "error");
+    }
     $("#results-admin-email").textContent = detail.email || "";
     $("#admin-confirm-upload").disabled = !stagedRows.length;
     try {
@@ -329,6 +377,7 @@
   window.addEventListener("srgf-admin-tab-activated", async () => {
     if (!idToken) return;
     try {
+      await loadFeaturedEvents();
       await loadPlayers();
       await loadMatches();
       setStatus($("#admin-entry-status"), "Admin data refreshed.", "success");

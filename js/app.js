@@ -541,9 +541,8 @@
       container.innerHTML = '<div class="player-basic-info-placeholder">Select a player to view their basic information.</div>';
       return;
     }
-    const profile = playerProfiles.find(item =>
-      String(item["Player ID"] || item.id || "").trim() === playerId
-    ) || {};
+    // playerProfiles is stored as a Map keyed by normalized Player ID.
+    const profile = playerProfiles.get(String(playerId).trim().toUpperCase()) || {};
     const gender = field(profile, "Gender", "gender", "Sex") || "Not provided";
     const dob = field(profile, "Date of Birth", "DOB", "Birth Date", "Birthdate");
     const age = playerAge(profile);

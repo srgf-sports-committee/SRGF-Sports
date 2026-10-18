@@ -546,15 +546,20 @@
     const gender = field(profile, "Gender", "gender", "Sex") || "Not provided";
     const age = playerAge(profile);
     // Rank each sport using the player's best-ranked format; break equal ranks by higher Elo.
+    // A format with no games played is ineligible if the player has played any games
+    // in any sport/format. If all game counts are zero, fall back to rank and Elo.
     const bestSports = rankingSports.map(sport => {
       const rows = rankingObjects(sport);
       const player = rows.find(item => String(item["Player ID"] || "").trim().toUpperCase() === String(playerId).trim().toUpperCase());
       if (!player) return null;
       const formats = ["Singles Elo", "Doubles Elo"].map(key => {
         if (player[key] === "" || player[key] == null || !Number.isFinite(Number(player[key]))) return null;
+        const format = key.startsWith("Singles") ? "Singles" : "Doubles";
+        const matchesValue = player[format + " Matches"];
+        const matches = matchesValue === "" || matchesValue == null || !Number.isFinite(Number(matchesValue)) ? 0 : Number(matchesValue);
         const rating = Number(player[key]);
         const rank = 1 + rows.filter(item => item[key] !== "" && item[key] != null && Number.isFinite(Number(item[key])) && Number(item[key]) > rating).length;
-        return { format: key.startsWith("Singles") ? "Singles" : "Doubles", rating, rank };
+        return { format, rating, rank, matches };
       }).filter(Boolean);
       if (!formats.length) return null;
       formats.sort((a, b) => a.rank - b.rank || b.rating - a.rating);
@@ -563,12 +568,18 @@
         name: sport.name || String(sport.sheetName || "").replace(/-Rating$/i, ""),
         rank: best.rank,
         rating: best.rating,
-        format: best.format
+        format: best.format,
+        matches: best.matches
       };
-    }).filter(Boolean).sort((a, b) => a.rank - b.rank || b.rating - a.rating);
-    // Show only the single best sport: best rank first, then highest Elo.
-    // If multiple sports tie on both, the first one is used.
-    const bestSport = bestSports[0];
+    }).filter(Boolean);
+    const hasGamesPlayed = bestSports.some(sport => sport.matches > 0);
+    const eligibleBestSports = (hasGamesPlayed
+      ? bestSports.filter(sport => sport.matches > 0)
+      : bestSports
+    ).sort((a, b) => a.rank - b.rank || b.rating - a.rating);
+    // Show only the single best eligible sport. If all formats have zero games,
+    // use rank and rating as the fallback; exact ties may resolve to any one sport.
+    const bestSport = eligibleBestSports[0];
     const bestSportsText = bestSport
       ? bestSport.name + " (" + (bestSport.format === "Singles" ? "S" : "D") + ")"
       : "No ratings yet";

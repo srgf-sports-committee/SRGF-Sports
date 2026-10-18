@@ -572,9 +572,16 @@
     }
     title.textContent = selected[1] + " · Current ratings";
     const tiles = rankingSports.map((sport,index) => {
-      const row = rankingObjects(sport).find(item => String(item["Player ID"] || "").trim() === id);
-      const singles = row && row["Singles Elo"] !== "" ? row["Singles Elo"] : "—";
-      const doubles = row && row["Doubles Elo"] !== "" ? row["Doubles Elo"] : "—";
+      const sportRows = rankingObjects(sport);
+      const row = sportRows.find(item => String(item["Player ID"] || "").trim() === id);
+      const ratingWithRank = (ratingKey) => {
+        if (!row || row[ratingKey] === "" || row[ratingKey] == null || !Number.isFinite(Number(row[ratingKey]))) return "—";
+        const rating = Number(row[ratingKey]);
+        const rank = 1 + sportRows.filter(item => item[ratingKey] !== "" && item[ratingKey] != null && Number.isFinite(Number(item[ratingKey])) && Number(item[ratingKey]) > rating).length;
+        return String(row[ratingKey]) + " (#" + rank + ")";
+      };
+      const singles = ratingWithRank("Singles Elo");
+      const doubles = ratingWithRank("Doubles Elo");
       const name = sport.name || String(sport.sheetName || "").replace(/-Rating$/i,"");
       const code = String(sport.code || sport.sheetName || "").replace(/-Rating$/i,"").toUpperCase();
       const icons = {TT:"🏓",BAD:"🏸",LT:"🎾"};

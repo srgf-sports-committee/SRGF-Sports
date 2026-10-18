@@ -294,6 +294,7 @@ body:has(.hero){background:linear-gradient(180deg,#102f3c 0,#163f4b 430px,#f5f7f
 .player-view-filter-bar select{width:100%;min-width:0;padding:11px 12px;border:1px solid #d7e1ed;border-radius:10px;background:#fff;color:var(--ink);font:inherit;font-size:13px;letter-spacing:normal}
 .player-view-filter-bar select[multiple]{height:108px;padding:5px}
 .player-view-compare-label small{font-size:10px;line-height:1.4;font-weight:500;letter-spacing:normal;color:var(--muted)}
+.player-view-clear-comparison{margin-top:7px;align-self:flex-start;padding:7px 11px;font-size:11px}
 .player-view-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin:26px 0 14px}
 .player-view-section-head h3{margin:0;font-size:24px;letter-spacing:-.035em;color:var(--ink)}
 .player-view-section-head p:not(.eyebrow){margin:5px 0 0;color:var(--muted);font-size:12px;line-height:1.5}

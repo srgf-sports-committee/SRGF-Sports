@@ -343,3 +343,8 @@ body:has(.hero){background:linear-gradient(180deg,#102f3c 0,#163f4b 430px,#f5f7f
 .player-view-show-comparisons strong{font-size:12px}
 .player-view-show-comparisons small{font-size:10px;font-weight:500;color:var(--muted)}
 .player-view-filter-bar select:disabled,.player-view-clear-comparison:disabled{opacity:.48;cursor:not-allowed;background:#f1f3f6}
+
+
+/* Compact directory layout: keep the navigation immediately below the header. */
+.content-section{padding-top:12px}
+@media(max-width:760px){.content-section{padding-top:8px}}

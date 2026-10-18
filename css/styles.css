@@ -498,3 +498,8 @@ body:has(.hero){background:linear-gradient(180deg,#102f3c 0,#163f4b 430px,#f5f7f
   .site-header .tab{transition:none}
   .site-header .tab:hover:not(.active){transform:none}
 }
+
+
+/* Hide the horizontal navigation scrollbar while preserving touch/trackpad scrolling. */
+.site-header .tabs{scrollbar-width:none;-ms-overflow-style:none}
+.site-header .tabs::-webkit-scrollbar{display:none;width:0;height:0}

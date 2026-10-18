@@ -231,13 +231,13 @@ body:has(.hero){background:linear-gradient(180deg,#102f3c 0,#163f4b 430px,#f5f7f
 .ranking-filter-bar{display:grid;grid-template-columns:minmax(150px,1.15fr) minmax(125px,.75fr) minmax(125px,.75fr) minmax(190px,1fr);align-items:end;gap:12px}
 .ranking-filter-bar>label,.ranking-filter-bar>.age-multi-filter{min-width:0;width:100%}
 .ranking-filter-bar>label select{width:100%;min-width:0}
-.ranking-filter-bar .age-multi-dropdown,.ranking-filter-bar .age-multi-dropdown summary{width:100%;min-width:0;box-sizing:border-box}
+.ranking-filter-bar .age-multi-dropdown{width:auto;min-width:220px}.ranking-filter-bar .age-multi-dropdown summary{width:auto;min-width:220px;box-sizing:border-box}.ranking-filter-bar .age-dropdown-options{width:max-content;min-width:100%;max-width:min(300px,85vw);box-sizing:border-box}
 .age-dropdown-options{display:flex;flex-direction:column;align-items:stretch;gap:5px}
 .age-dropdown-options label{display:flex;align-items:center;gap:8px;white-space:nowrap;padding:7px 9px}
 .age-dropdown-options input{margin:0;flex:0 0 auto}
 .age-multi-dropdown summary{cursor:pointer;white-space:nowrap}
 @media(max-width:850px){.ranking-filter-bar{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:600px){.ranking-filter-bar{grid-template-columns:minmax(0,1fr)}.ranking-filter-bar>label,.ranking-filter-bar>.age-multi-filter{width:100%;min-width:0}.age-dropdown-options{width:max-content;min-width:100%;max-width:85vw;box-sizing:border-box}}
+@media(max-width:600px){.ranking-filter-bar{grid-template-columns:minmax(0,1fr)}.ranking-filter-bar>label,.ranking-filter-bar>.age-multi-filter{width:100%;min-width:0}.ranking-filter-bar .age-multi-dropdown,.ranking-filter-bar .age-multi-dropdown summary{width:100%;min-width:0}.ranking-filter-bar .age-dropdown-options{width:max-content;min-width:100%;max-width:85vw;box-sizing:border-box}}
 
 
 /* Show live event totals on the Home feature cards as well as the tabs. */

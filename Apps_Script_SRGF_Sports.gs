@@ -268,6 +268,37 @@ function doGet(e) {
       }).sort((a,b)=>String(b["Match Date"]).localeCompare(String(a["Match Date"])));
       return json_({ok:true,sport:sport.name,matches:rows});
     }
+    if (action === "ratinghistory") {
+      // Public, read-only history feed for the Player View chart.
+      // An optional sport filter limits the response; otherwise all four
+      // sports are returned so the UI can compare ratings on one timeline.
+      const requestedSport = text_(e && e.parameter && e.parameter.sport);
+      const requestedFormat = upper_(e && e.parameter && e.parameter.format);
+      const selected = requestedSport && upper_(requestedSport) !== "ALL"
+        ? [{code: upper_(requestedSport), sport: sportInfo_(requestedSport)}]
+        : Object.keys(SPORT_MAP_).map(code => ({code, sport: SPORT_MAP_[code]}));
+      const history = [];
+      selected.forEach(item => {
+        const sheet = ss.getSheetByName(historySheetName_(item.sport));
+        if (!sheet) return;
+        const values = sheet.getDataRange().getDisplayValues();
+        if (!values.length) return;
+        const headers = values[0].map(h => text_(h));
+        const missing = HISTORY_HEADERS_.filter(h => !headers.includes(h));
+        if (missing.length) throw new Error('Tab "' + historySheetName_(item.sport) + '" is missing required header(s): ' + missing.join(", "));
+        values.slice(1).filter(r => r.some(v => text_(v) !== "")).forEach(row => {
+          const itemRow = {};
+          headers.forEach((header, i) => { if (header) itemRow[header] = row[i] || ""; });
+          if (requestedFormat && requestedFormat !== "ALL" && upper_(itemRow.Format) !== requestedFormat) return;
+          itemRow["Sport Code"] = item.code;
+          itemRow.Sport = item.sport.name;
+          history.push(itemRow);
+        });
+      });
+      history.sort((a,b) => String(a["Match Date"]).localeCompare(String(b["Match Date"])) ||
+        String(a["Recorded At"]).localeCompare(String(b["Recorded At"])));
+      return json_({ok:true,history});
+    }
     if (action === "playerhistory") {
       const sport = sportInfo_(e && e.parameter && e.parameter.sport);
       const playerId = upper_(e && e.parameter && e.parameter.playerId);

@@ -578,7 +578,7 @@
         if (!row || row[ratingKey] === "" || row[ratingKey] == null || !Number.isFinite(Number(row[ratingKey]))) return "—";
         const rating = Number(row[ratingKey]);
         const rank = 1 + sportRows.filter(item => item[ratingKey] !== "" && item[ratingKey] != null && Number.isFinite(Number(item[ratingKey])) && Number(item[ratingKey]) > rating).length;
-        return String(row[ratingKey]) + " (#" + rank + ")";
+        return { rating: String(row[ratingKey]), rank: "#" + rank };
       };
       const singles = ratingWithRank("Singles Elo");
       const doubles = ratingWithRank("Doubles Elo");
@@ -588,7 +588,7 @@
       const sportIcon = code === "PB"
         ? '<svg class="pickleball-card-icon" viewBox="0 0 64 64" role="img" aria-label="Pickleball paddle and ball" style="width:30px;height:30px;display:block"><g transform="rotate(35 25 28)"><rect x="14" y="5" width="23" height="34" rx="11" fill="#173b65"/><rect x="21" y="34" width="9" height="22" rx="4" fill="#173b65"/><path d="M19 12h13M18 17h15" stroke="#5cc5e8" stroke-width="2" stroke-linecap="round"/><g fill="#b8d8ef"><circle cx="20" cy="24" r="1"/><circle cx="26" cy="22" r="1"/><circle cx="31" cy="25" r="1"/><circle cx="22" cy="29" r="1"/><circle cx="28" cy="30" r="1"/></g></g><circle cx="45" cy="43" r="12" fill="#f7d82d" stroke="#d7ad11" stroke-width="1.5"/><g fill="#b98d08"><circle cx="41" cy="37" r="1.8"/><circle cx="49" cy="38" r="1.8"/><circle cx="38" cy="44" r="1.8"/><circle cx="46" cy="46" r="1.8"/><circle cx="43" cy="51" r="1.8"/><circle cx="52" cy="44" r="1.8"/></g></svg>'
         : (icons[code] || "🏅");
-      return '<article class="player-rating-tile player-rating-tone-' + (index%4+1) + '"><div class="player-rating-tile-head"><span>' + sportIcon + '</span><div><small>' + escapeHtml(code) + '</small><strong>' + escapeHtml(name) + '</strong></div></div><div class="player-rating-values"><div><small>SINGLES</small><strong>' + escapeHtml(singles) + '</strong></div><div><small>DOUBLES</small><strong>' + escapeHtml(doubles) + '</strong></div></div></article>';
+      return '<article class="player-rating-tile player-rating-tone-' + (index%4+1) + '"><div class="player-rating-tile-head"><span>' + sportIcon + '</span><div><small>' + escapeHtml(code) + '</small><strong>' + escapeHtml(name) + '</strong></div></div><div class="player-rating-values"><div><small>SINGLES</small><strong>' + (singles === "—" ? "—" : escapeHtml(singles.rating) + ' <small class="player-rating-rank">(' + escapeHtml(singles.rank) + ')</small>') + '</strong></div><div><small>DOUBLES</small><strong>' + (doubles === "—" ? "—" : escapeHtml(doubles.rating) + ' <small class="player-rating-rank">(' + escapeHtml(doubles.rank) + ')</small>') + '</strong></div></div></article>';
     });
     container.innerHTML = tiles.length ? tiles.join("") : '<div class="insight-empty">Sport rating sheets are not available yet.</div>';
   }

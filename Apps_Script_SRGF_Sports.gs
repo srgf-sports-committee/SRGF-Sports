@@ -507,6 +507,30 @@ function doPost(e) {
     const adminEmail=verifySportsAdmin_(body.idToken);
     if(action==="adminauth") return json_({ok:true,authorized:true,role:"ADMIN",email:adminEmail});
     const ss=getDirectory_();
+    if(action==="setfeaturedevent") {
+      const eventId=text_(body.eventId);
+      if(!eventId) throw new Error("Choose an event to feature.");
+      const sheet=ss.getSheetByName("EVENTS");
+      if(!sheet) throw new Error("EVENTS tab not found.");
+      const values=sheet.getDataRange().getDisplayValues();
+      if(!values.length) throw new Error("EVENTS sheet has no header row.");
+      const headers=values[0].map(h=>text_(h));
+      const idCol=headers.indexOf("Event ID");
+      if(idCol<0) throw new Error("Event ID column not found.");
+      const selectedIndex=values.slice(1).findIndex(row=>text_(row[idCol])===eventId);
+      if(selectedIndex<0) throw new Error("The selected event was not found. Refresh the Admin tab and try again.");
+      let featuredCol=headers.indexOf("Featured");
+      if(featuredCol<0) {
+        featuredCol=sheet.getLastColumn();
+        sheet.getRange(1,featuredCol+1).setValue("Featured");
+      }
+      const lastRow=sheet.getLastRow();
+      if(lastRow>1) sheet.getRange(2,featuredCol+1,lastRow-1,1).setValue(false);
+      sheet.getRange(selectedIndex+2,featuredCol+1).setValue(true);
+      const updatedCol=headers.indexOf("Last Updated");
+      if(updatedCol>=0) sheet.getRange(selectedIndex+2,updatedCol+1).setValue(new Date().toISOString());
+      return json_({ok:true,message:"Featured Event saved. The Home page will now show the selected event."});
+    }
     if(action==="saveevent") {
       const sheet=ss.getSheetByName("EVENTS");
       if(!sheet) throw new Error("EVENTS tab not found.");

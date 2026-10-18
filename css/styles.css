@@ -559,3 +559,11 @@ body:has(.hero){background:linear-gradient(180deg,#102f3c 0,#163f4b 430px,#f5f7f
   .site-header .tabs{gap:5px;flex-wrap:wrap}
   .site-header .tab{min-height:38px;padding:9px 12px;border-radius:10px 10px 0 0;font-size:11px}
 }
+
+
+/* Player View chart period selector */
+.chart-section-head{align-items:flex-end}
+.player-view-period-control{display:flex;flex-direction:column;gap:6px;min-width:190px;color:var(--muted);font-size:11px;font-weight:850;letter-spacing:.03em}
+.player-view-period-control select{width:100%;padding:10px 12px;border:1px solid #d7e1ed;border-radius:11px;background:#fff;color:var(--ink);font:inherit;font-size:13px;letter-spacing:normal;box-shadow:0 3px 10px #17344b08}
+.player-view-period-control select:focus-visible{outline:2px solid #5b9d83;outline-offset:2px}
+@media(max-width:600px){.chart-section-head{align-items:stretch;flex-direction:column}.player-view-period-control{width:100%;min-width:0}}

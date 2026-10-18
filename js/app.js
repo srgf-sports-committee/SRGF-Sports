@@ -102,23 +102,61 @@
     renderList("#archived-list", archived, true);
   }
 
-  async function loadEvents() {
-    const status = $("#directory-status");
-    status.textContent = "Refreshing event directory…";
+  const EVENTS_CACHE_KEY = "srgfSportsEventsCacheV1";
+  const EVENTS_REFRESH_MS = 60000;
+  let eventsLastFetchAt = 0;
+  let eventsRequestInFlight = null;
+  let eventsHasLoadedSuccessfully = false;
+
+  function restoreCachedEvents() {
     try {
-      const response = await fetch(API_URL + "?action=events", { method: "GET", cache: "no-store" });
-      if (!response.ok) throw new Error("HTTP " + response.status);
-      const data = await response.json();
-      if (!data || data.ok !== true || !Array.isArray(data.events)) throw new Error(data && data.error || "Unexpected directory response.");
-      allEvents = data.events;
+      const cached = JSON.parse(localStorage.getItem(EVENTS_CACHE_KEY) || "null");
+      if (!cached || !Array.isArray(cached.events)) return false;
+      allEvents = cached.events;
       render();
       renderInsights();
-      status.textContent = "Event directory updated.";
-    } catch (error) {
-      render();
-      status.textContent = "The event directory could not be refreshed. Please try again.";
-      console.error("SRGF Sports directory error:", error);
+      return true;
+    } catch (_) {
+      return false;
     }
+  }
+
+  async function loadEvents(force = false) {
+    const status = $("#directory-status");
+    const now = Date.now();
+    if (eventsRequestInFlight) return eventsRequestInFlight;
+    // Reuse the most recent successful response on tab changes; explicit refresh bypasses this.
+    if (!force && eventsHasLoadedSuccessfully && now - eventsLastFetchAt < EVENTS_REFRESH_MS) return;
+    if (!eventsHasLoadedSuccessfully && !allEvents.length) restoreCachedEvents();
+    if (status) status.textContent = allEvents.length ? "Checking for event updates…" : "Loading event directory…";
+
+    eventsRequestInFlight = (async () => {
+      try {
+        const response = await fetch(API_URL + "?action=events", { method: "GET", cache: "no-store" });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        if (!data || data.ok !== true || !Array.isArray(data.events)) throw new Error(data && data.error || "Unexpected directory response.");
+        allEvents = data.events;
+        eventsLastFetchAt = Date.now();
+        eventsHasLoadedSuccessfully = true;
+        try {
+          localStorage.setItem(EVENTS_CACHE_KEY, JSON.stringify({ savedAt: eventsLastFetchAt, events: allEvents }));
+        } catch (_) { /* Storage may be disabled or full; live data still works. */ }
+        render();
+        renderInsights();
+        if (status) status.textContent = "Event directory updated.";
+      } catch (error) {
+        // Keep the last successful in-memory or saved data visible when the network is unavailable.
+        render();
+        if (status) status.textContent = allEvents.length
+          ? "Showing saved event data. Could not refresh; will retry automatically."
+          : "The event directory could not be loaded. Please try again.";
+        console.error("SRGF Sports directory error:", error);
+      } finally {
+        eventsRequestInFlight = null;
+      }
+    })();
+    return eventsRequestInFlight;
   }
 
   function updatePageUrl(key, value) {
@@ -194,8 +232,8 @@
   const allowedTabs = ["home", "upcoming", "archived", "rankings", "player-view"];
   const initialTab = initialParams.get("tab");
   if (allowedTabs.includes(initialTab || "")) activateTab(initialTab, false);
-  $("#refresh-upcoming").addEventListener("click", loadEvents);
-  $("#refresh-archived").addEventListener("click", loadEvents);
+  $("#refresh-upcoming").addEventListener("click", () => loadEvents(true));
+  $("#refresh-archived").addEventListener("click", () => loadEvents(true));
 
 
   // Admin sign-in stays on this page; it uses only the separate SRGF Sports backend.
@@ -1272,11 +1310,20 @@
 
   // The current Racketlon website remains accessible even before an event
   // record is added to the new master directory.
-  window.SRGFSportsDirectory = { refresh: loadEvents, racketlonUrl: RACKETLON_URL };
+  window.SRGFSportsDirectory = { refresh: () => loadEvents(true), racketlonUrl: RACKETLON_URL };
+  // Paint cached events immediately, then refresh from the directory in the background.
+  restoreCachedEvents();
   render();
   // activateTab() loads the selected tab. Only load both datasets directly when there is no saved tab.
   if (!allowedTabs.includes(initialTab || "")) {
     loadEvents();
     loadRankings();
   }
+  // Keep event listings fresh while the page is open; pause periodic checks in background tabs.
+  window.setInterval(() => {
+    if (!document.hidden) loadEvents();
+  }, EVENTS_REFRESH_MS);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) loadEvents();
+  });
 })();

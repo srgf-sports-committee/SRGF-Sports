@@ -534,6 +534,32 @@
     playerViewFiltersInitialized = true;
   }
 
+  function renderPlayerViewBasicInfo(playerId, playerName) {
+    const container = $("#player-view-basic-info");
+    if (!container) return;
+    if (!playerId) {
+      container.innerHTML = '<div class="player-basic-info-placeholder">Select a player to view their basic information.</div>';
+      return;
+    }
+    const profile = playerProfiles.find(item =>
+      String(item["Player ID"] || item.id || "").trim() === playerId
+    ) || {};
+    const gender = field(profile, "Gender", "gender", "Sex") || "Not provided";
+    const dob = field(profile, "Date of Birth", "DOB", "Birth Date", "Birthdate");
+    const age = playerAge(profile);
+    const details = [
+      ["Player ID", playerId],
+      ["Gender", gender],
+      ["Date of birth", dob || "Not provided"],
+      ["Age", age === null ? "Not provided" : String(age)]
+    ];
+    container.innerHTML =
+      '<div class="player-basic-info-heading"><span class="player-basic-avatar" aria-hidden="true">♟</span><div><small>PLAYER PROFILE</small><strong>' + escapeHtml(playerName || "Player") + '</strong></div></div>' +
+      '<div class="player-basic-info-fields">' + details.map(([label,value]) =>
+        '<div class="player-basic-info-item"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(value) + '</strong></div>'
+      ).join("") + '</div>';
+  }
+
   function renderPlayerViewRatings() {
     const primary = $("#player-view-primary");
     const title = $("#player-view-rating-title");
@@ -541,6 +567,7 @@
     if (!primary || !title || !container) return;
     const id = primary.value;
     const selected = playerViewPlayerList().find(item => item[0] === id);
+    renderPlayerViewBasicInfo(id, selected ? selected[1] : "");
     if (!selected) {
       title.textContent = "Select a player to see ratings";
       container.innerHTML = '<div class="insight-empty">Choose a player from the filter above. Each tile shows both Singles and Doubles current Elo.</div>';

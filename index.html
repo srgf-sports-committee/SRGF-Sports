@@ -139,10 +139,14 @@
           <div><h3>Player View</h3><p>Explore current ratings and follow rating changes over calendar dates.</p></div>
           <button class="refresh-button" id="refresh-player-view" type="button">↻ Refresh</button>
         </div>
-        <div class="player-view-filter-bar">
+        <div class="player-view-primary-filter">
           <label>Player Name
             <select id="player-view-primary" aria-label="Choose the primary player"><option value="">Select a player</option></select>
           </label>
+        </div>
+        <div class="player-view-section-head"><div><p class="eyebrow dark-eyebrow">CURRENT RATINGS</p><h3 id="player-view-rating-title">Select a player to see ratings</h3><p>All four sports are shown, with Singles and Doubles ratings regardless of the filters below.</p></div></div>
+        <div id="player-view-rating-tiles" class="player-view-rating-grid"><div class="insight-empty">Choose a player to view current ratings.</div></div>
+        <div class="player-view-filter-bar player-view-filter-bar-below-tiles">
           <label>Format
             <select id="player-view-format" aria-label="Choose Singles or Doubles"><option value="Singles">Singles</option><option value="Doubles">Doubles</option></select>
           </label>
@@ -153,10 +157,9 @@
             <select id="player-view-compare" aria-label="Select additional players to compare" multiple size="4"></select>
             <small>Choose one or more players. The primary player is excluded from this list.</small>
           </label>
+          <div class="player-view-export-control"><button class="button button-dark" id="player-view-export" type="button">Export selected players (.xlsx)</button><small>Exports 8 sheets: one for each sport and Singles/Doubles, with actual match-date rating changes.</small></div>
         </div>
-        <div class="player-view-section-head"><div><p class="eyebrow dark-eyebrow">CURRENT RATINGS</p><h3 id="player-view-rating-title">Select a player to see ratings</h3><p>All four sports are shown, with Singles and Doubles ratings regardless of the filters above.</p></div></div>
-        <div id="player-view-rating-tiles" class="player-view-rating-grid"><div class="insight-empty">Choose a player to view current ratings.</div></div>
-        <div class="player-view-section-head chart-section-head"><div><p class="eyebrow dark-eyebrow">RATING JOURNEY</p><h3>Historical rating changes</h3><p>Ratings are plotted by match calendar date. Use Sport and Format above to narrow the chart.</p></div></div>
+        <div class="player-view-section-head chart-section-head"><div><p class="eyebrow dark-eyebrow">RATING JOURNEY</p><h3>Monthly rating history</h3><p>Monthly rating from January 2026 onward. Each month uses the latest rating change in that month; months without matches carry forward the previous rating.</p></div></div>
         <div class="player-view-chart-card">
           <div id="player-view-chart-status" class="directory-status" role="status" aria-live="polite">Loading rating history…</div>
           <div class="player-view-chart-wrap"><canvas id="player-view-chart" aria-label="Historical Elo rating line chart" role="img"></canvas></div>

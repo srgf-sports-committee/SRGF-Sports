@@ -89,10 +89,13 @@
       return upcomingStatuses.has(status) || (!archivedStatuses.has(status) && status !== "" && !["DRAFT", "HIDDEN", "CANCELLED", "CANCELED"].includes(status));
     });
     if (!directoryHasRacketlon) upcoming.unshift(racketlonFallback);
-    $("#upcoming-count").textContent = upcoming.length;
-    $("#archived-count").textContent = archived.length;
+    // The Home layout uses home-* counters; the legacy standalone counters may not exist.
+    const upcomingCount = $("#upcoming-count");
+    const archivedCount = $("#archived-count");
     const homeUpcomingCount = $("#home-upcoming-count");
     const homeArchivedCount = $("#home-archived-count");
+    if (upcomingCount) upcomingCount.textContent = upcoming.length;
+    if (archivedCount) archivedCount.textContent = archived.length;
     if (homeUpcomingCount) homeUpcomingCount.textContent = upcoming.length;
     if (homeArchivedCount) homeArchivedCount.textContent = archived.length;
     renderList("#upcoming-list", upcoming, false);

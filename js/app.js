@@ -564,19 +564,34 @@
         });
       });
 
-      if (sport === "ALL") {
-        // All Sports is one average rating per player, not four separate sport lines.
+      if (!showComparisons) {
+        // Default profile: four individual sport lines plus a dotted All Sports average.
+        allCodes.forEach(code => {
+          seriesList.push({
+            id,code,name:players.get(id)||id,
+            sport:({TT:"Table Tennis",PB:"Pickleball",BAD:"Badminton",LT:"Lawn Tennis"})[code],
+            values:sportMonthly[code],
+            isAllSports:false
+          });
+        });
         const average = months.map((_, monthIndex) => {
           const values = allCodes.map(code => sportMonthly[code][monthIndex]).filter(Number.isFinite);
           return values.length ? values.reduce((sum,value)=>sum+value,0)/values.length : null;
         });
-        seriesList.push({id,code:"ALL",name:players.get(id)||id,sport:"All Sports average",values:average});
+        seriesList.push({id,code:"ALL",name:players.get(id)||id,sport:"All Sports average",values:average,isAllSports:true});
+      } else if (sport === "ALL") {
+        const average = months.map((_, monthIndex) => {
+          const values = allCodes.map(code => sportMonthly[code][monthIndex]).filter(Number.isFinite);
+          return values.length ? values.reduce((sum,value)=>sum+value,0)/values.length : null;
+        });
+        seriesList.push({id,code:"ALL",name:players.get(id)||id,sport:"All Sports average",values:average,isAllSports:true});
       } else {
         seriesList.push({
           id,code:sport,name:players.get(id)||id,
           sport:String((selectedRows.find(row=>String(row["Player ID"]||"").trim()===id && String(row["Sport Code"]||"").toUpperCase()===sport)||{}).Sport ||
             ({TT:"Table Tennis",PB:"Pickleball",BAD:"Badminton",LT:"Lawn Tennis"})[sport] || sport),
-          values:sportMonthly[sport]
+          values:sportMonthly[sport],
+          isAllSports:false
         });
       }
     });
@@ -590,10 +605,10 @@
       const sportIndex = series.code === "ALL" ? 0 : Math.max(0,allCodes.indexOf(series.code));
       const color = PLAYER_VIEW_COLORS[(playerIndex*4+sportIndex)%PLAYER_VIEW_COLORS.length];
       return {
-        label: sport === "ALL" ? series.name+" · All Sports average" : series.name+" · "+series.sport,
+        label: series.name+" · "+(series.isAllSports ? "All Sports average" : series.sport),
         data:series.values,
-        borderColor:color,backgroundColor:color,borderWidth:series.id===primaryId?3:2,
-        borderDash:series.id===primaryId?[]:[6,4],pointRadius:2,pointHoverRadius:5,
+        borderColor:color,backgroundColor:color,borderWidth:series.isAllSports?3:(series.id===primaryId?2:2),
+        borderDash:series.isAllSports?[5,5]:(series.id===primaryId?[]:[6,4]),pointRadius:series.isAllSports?0:2,pointHoverRadius:5,
         tension:.22,spanGaps:true
       };
     });
@@ -611,14 +626,16 @@
         },
         scales:{
           x:{title:{display:true,text:"Month"},ticks:{maxRotation:0,minRotation:0,autoSkip:false}},
-          y:{title:{display:true,text:sport==="ALL"?"Average monthly Elo across 4 sports":"Monthly Elo rating"},beginAtZero:false}
+          y:{title:{display:true,text:!showComparisons || sport==="ALL"?"Monthly Elo rating":"Monthly Elo rating"},beginAtZero:false}
         }
       }
     });
     status.textContent="Showing monthly ratings from Jan 2026 to "+labels[labels.length-1]+". Missing months carry forward the previous rating.";
-    if(note) note.textContent=sport==="ALL"
-      ?"All Sports shows one line per selected player: the average of their Table Tennis, Pickleball, Badminton and Lawn Tennis ratings for "+format+". Each sport carries its last rating forward when there is no match that month."
-      :"Showing "+format+" monthly rating history for "+($("#player-view-sport option:checked")?.textContent||sport)+".";
+    if(note) note.textContent=!showComparisons
+      ?"Full profile: four solid lines show Table Tennis, Pickleball, Badminton and Lawn Tennis; the dotted line shows the average across all four sports for "+format+". Each sport carries its last rating forward when there is no match that month."
+      :sport==="ALL"
+        ?"All Sports shows the average of Table Tennis, Pickleball, Badminton and Lawn Tennis for "+format+". Each sport carries its last rating forward when there is no match that month."
+        :"Showing "+format+" monthly rating history for "+($("#player-view-sport option:checked")?.textContent||sport)+".";
   }
 
   function exportPlayerViewHistory() {

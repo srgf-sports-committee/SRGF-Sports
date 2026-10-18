@@ -544,12 +544,10 @@
     // playerProfiles is stored as a Map keyed by normalized Player ID.
     const profile = playerProfiles.get(String(playerId).trim().toUpperCase()) || {};
     const gender = field(profile, "Gender", "gender", "Sex") || "Not provided";
-    const dob = field(profile, "Date of Birth", "DOB", "Birth Date", "Birthdate");
     const age = playerAge(profile);
     const details = [
       ["Player ID", playerId],
       ["Gender", gender],
-      ["Date of birth", dob || "Not provided"],
       ["Age", age === null ? "Not provided" : String(age)]
     ];
     container.innerHTML =

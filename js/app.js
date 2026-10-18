@@ -545,7 +545,7 @@
     const profile = playerProfiles.get(String(playerId).trim().toUpperCase()) || {};
     const gender = field(profile, "Gender", "gender", "Sex") || "Not provided";
     const age = playerAge(profile);
-    // Rank each sport using the player's best-ranked format; break equal ranks by higher Elo.
+    // Rank each sport using rank first, Elo second, and games won as the next tie-breaker.
     // A format with no games played is ineligible if the player has played any games
     // in any sport/format. If all game counts are zero, fall back to rank and Elo.
     const bestSports = rankingSports.map(sport => {
@@ -557,9 +557,11 @@
         const format = key.startsWith("Singles") ? "Singles" : "Doubles";
         const matchesValue = player[format + " Matches"];
         const matches = matchesValue === "" || matchesValue == null || !Number.isFinite(Number(matchesValue)) ? 0 : Number(matchesValue);
+        const winsValue = player[format + " Wins"];
+        const wins = winsValue === "" || winsValue == null || !Number.isFinite(Number(winsValue)) ? 0 : Number(winsValue);
         const rating = Number(player[key]);
         const rank = 1 + rows.filter(item => item[key] !== "" && item[key] != null && Number.isFinite(Number(item[key])) && Number(item[key]) > rating).length;
-        return { format, rating, rank, matches };
+        return { format, rating, rank, matches, wins };
       }).filter(Boolean);
       if (!formats.length) return null;
       formats.sort((a, b) => a.rank - b.rank || b.rating - a.rating);
@@ -576,9 +578,9 @@
     const eligibleBestSports = (hasGamesPlayed
       ? bestSports.filter(sport => sport.matches > 0)
       : bestSports
-    ).sort((a, b) => a.rank - b.rank || b.rating - a.rating);
-    // Show only the single best eligible sport. If all formats have zero games,
-    // use rank and rating as the fallback; exact ties may resolve to any one sport.
+    ).sort((a, b) => a.rank - b.rank || b.rating - a.rating || b.wins - a.wins);
+    // Show only the single best eligible sport. If rank and Elo tie, higher games won wins.
+    // If all formats have zero games, use rank, Elo, then wins as the fallback.
     const bestSport = eligibleBestSports[0];
     const bestSportsText = bestSport
       ? bestSport.name + " (" + (bestSport.format === "Singles" ? "S" : "D") + ")"

@@ -27,21 +27,6 @@
   </header>
 
   <main>
-
-    <section class="content-section" aria-labelledby="section-heading">
-      <div class="section-heading">
-        <div><p class="eyebrow dark-eyebrow">YOUR SPORTS DIRECTORY</p><h2 id="section-heading">Find your next game</h2></div>
-        <p class="section-intro">One place for every event, from the first sign-up to the final result.</p>
-      </div>
-
-      <nav class="tabs" aria-label="Sports directory sections" role="tablist">
-        <button class="tab active" role="tab" aria-selected="true" aria-controls="home-panel" id="tab-home" data-tab="home">Home</button>
-        <button class="tab" role="tab" aria-selected="false" aria-controls="rankings-panel" id="tab-rankings" data-tab="rankings">Sports Ranking</button>
-        <button class="tab" role="tab" aria-selected="false" aria-controls="player-view-panel" id="tab-player-view" data-tab="player-view">Player View</button>
-        <button class="tab admin-tab" role="tab" aria-selected="false" aria-controls="admin-panel" id="tab-admin" data-tab="admin" hidden>Admin</button>
-      </nav>
-
-      <section id="home-panel" class="tab-panel" role="tabpanel" aria-labelledby="tab-home">
     <section class="hero">
       <div class="hero-copy">
         <p class="eyebrow">SPORTS BRING US TOGETHER</p>
@@ -62,8 +47,26 @@
       </div>
     </section>
 
+    <section class="content-section" aria-labelledby="section-heading">
+      <div class="section-heading">
+        <div><p class="eyebrow dark-eyebrow">YOUR SPORTS DIRECTORY</p><h2 id="section-heading">Find your next game</h2></div>
+        <p class="section-intro">One place for every event, from the first sign-up to the final result.</p>
+      </div>
+
+      <nav class="tabs" aria-label="Sports directory sections" role="tablist">
+        <button class="tab active" role="tab" aria-selected="true" aria-controls="home-panel" id="tab-home" data-tab="home">Home</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="rankings-panel" id="tab-rankings" data-tab="rankings">Sports Ranking</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="player-view-panel" id="tab-player-view" data-tab="player-view">Player View</button>
+        <button class="tab admin-tab" role="tab" aria-selected="false" aria-controls="admin-panel" id="tab-admin" data-tab="admin" hidden>Admin</button>
+      </nav>
+
+      <section id="home-panel" class="tab-panel" role="tabpanel" aria-labelledby="tab-home">
         <!-- Important Information is now the first section of Home. -->
         <div class="home-important-information insights-panel">
+        <div class="insights-hero">
+          <div><p class="eyebrow">THE SRGF SPORTS SCOREBOARD</p><h2>Big plays. Bright futures.</h2><p>Quick highlights and the highest-rated player in each sport. Open Sports Ranking for the full leaderboards and match history.</p></div>
+          <div class="insights-trophy" aria-hidden="true">🏆</div>
+        </div>
         <div class="insights-section-head"><div><p class="eyebrow dark-eyebrow">AT A GLANCE</p><h3>Key highlights</h3></div><div class="insights-filter-controls"><label class="insights-format-label">Format <select id="insights-format-filter"><option value="Singles">Singles</option><option value="Doubles">Doubles</option></select></label><label class="insights-format-label">Gender <select id="insights-gender-filter"><option value="All">All</option><option value="Male">Male</option><option value="Female">Female</option></select></label><div class="insights-format-label age-multi-filter"><span>Age group (select multiple)</span><details class="age-multi-dropdown"><summary id="insights-age-summary">All age groups</summary><div class="age-multi-options age-dropdown-options"><label class="age-select-all-option"><input type="checkbox" data-age-select-all="insights"> Select all age groups</label><label><input type="checkbox" name="insights-age-band" value="under12"> Below 12</label><label><input type="checkbox" name="insights-age-band" value="12to18"> 12 to 17</label><label><input type="checkbox" name="insights-age-band" value="18to45"> 18 to 44</label><label><input type="checkbox" name="insights-age-band" value="45to60"> 45 to 59</label><label><input type="checkbox" name="insights-age-band" value="60plus"> 60+</label></div></details></div></div></div>
         <div id="insights-highlights" class="insights-kpis"><div class="insight-kpi"><span>Loading scoreboard…</span></div></div>
         <div class="insights-section-head"><div><p class="eyebrow dark-eyebrow">CURRENT LEADERS</p><h3>Highest rating in each sport</h3><p>Highest Elo for the selected Singles/Doubles format and player filters.</p></div></div>

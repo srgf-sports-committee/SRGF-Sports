@@ -320,3 +320,15 @@ body:has(.hero){background:linear-gradient(180deg,#102f3c 0,#163f4b 430px,#f5f7f
 .player-view-legend-note{margin-top:9px;color:var(--muted);font-size:11px;line-height:1.5}
 @media(max-width:1000px){.player-view-filter-bar{grid-template-columns:repeat(2,minmax(0,1fr))}.player-view-rating-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:600px){.player-view-filter-bar{grid-template-columns:minmax(0,1fr);padding:12px}.player-view-rating-grid{grid-template-columns:1fr}.player-view-section-head{align-items:flex-start;flex-direction:column}.player-view-chart-card{padding:12px}.player-view-chart-wrap{height:310px}.player-rating-values strong{font-size:23px}}
+
+
+/* Player View filter order: primary player above ratings, chart filters below tiles. */
+.player-view-primary-filter{display:flex;align-items:flex-end;gap:14px;margin:0 0 18px;padding:15px 16px;border:1px solid #dce6f2;border-radius:16px;background:linear-gradient(120deg,#f1f8ff,#f5f1ff)}
+.player-view-primary-filter label{display:flex;flex-direction:column;gap:7px;width:min(100%,420px);color:var(--muted);font-size:11px;font-weight:850;letter-spacing:.03em}
+.player-view-primary-filter select{width:100%;min-width:0;padding:11px 12px;border:1px solid #d7e1ed;border-radius:10px;background:#fff;color:var(--ink);font:inherit;font-size:13px;letter-spacing:normal}
+.player-view-filter-bar-below-tiles{grid-template-columns:minmax(140px,.7fr) minmax(160px,1fr) minmax(220px,1.2fr) minmax(220px,1fr);margin-top:20px;margin-bottom:24px}
+.player-view-export-control{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:8px;min-width:0;align-self:stretch}
+.player-view-export-control .button{max-width:100%;white-space:normal;text-align:center;line-height:1.35}
+.player-view-export-control small{font-size:10px;line-height:1.45;color:var(--muted)}
+@media(max-width:1000px){.player-view-filter-bar-below-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:600px){.player-view-primary-filter{padding:12px}.player-view-primary-filter label{width:100%}.player-view-filter-bar-below-tiles{grid-template-columns:minmax(0,1fr)}}

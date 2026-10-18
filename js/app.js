@@ -71,8 +71,15 @@
   }
 
   function render() {
-    const upcoming = allEvents.filter(event => ["UPCOMING", "OPEN", "REGISTRATION OPEN"].includes(normalStatus(event)));
-    const archived = allEvents.filter(event => ["ARCHIVED", "COMPLETED", "CLOSED"].includes(normalStatus(event)));
+    const statusKey = event => normalStatus(event).replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+    const archivedStatuses = new Set(["ARCHIVED", "COMPLETED", "CLOSED", "FINISHED", "RESULTS PUBLISHED"]);
+    const upcomingStatuses = new Set(["UPCOMING", "UPCOMING SPORTS", "OPEN", "REGISTRATION OPEN", "COMING SOON", "ONGOING", "IN PROGRESS"]);
+    const archived = allEvents.filter(event => archivedStatuses.has(statusKey(event)));
+    // Count active directory events even when their status uses a variant label.
+    const upcoming = allEvents.filter(event => {
+      const status = statusKey(event);
+      return upcomingStatuses.has(status) || (!archivedStatuses.has(status) && status !== "" && !["DRAFT", "HIDDEN", "CANCELLED", "CANCELED"].includes(status));
+    });
     $("#upcoming-count").textContent = upcoming.length;
     $("#archived-count").textContent = archived.length;
     const homeUpcomingCount = $("#home-upcoming-count");

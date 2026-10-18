@@ -58,6 +58,7 @@
         <button class="tab" role="tab" aria-selected="false" aria-controls="upcoming-panel" id="tab-upcoming" data-tab="upcoming">Upcoming Sports <span id="upcoming-count" class="tab-count">—</span></button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="archived-panel" id="tab-archived" data-tab="archived">Archived Results <span id="archived-count" class="tab-count">—</span></button>
         <button class="tab" role="tab" aria-selected="false" aria-controls="rankings-panel" id="tab-rankings" data-tab="rankings">Sports Ranking</button>
+        <button class="tab" role="tab" aria-selected="false" aria-controls="player-view-panel" id="tab-player-view" data-tab="player-view">Player View</button>
         <button class="tab insights-tab" role="tab" aria-selected="false" aria-controls="insights-panel" id="tab-insights" data-tab="insights">🏆 Important Information</button>
         <button class="tab admin-tab" role="tab" aria-selected="false" aria-controls="admin-panel" id="tab-admin" data-tab="admin" hidden>Admin</button>
       </nav>
@@ -133,6 +134,36 @@
         <div id="ranking-status" class="directory-status" role="status" aria-live="polite">Loading sports rankings…</div>
         <div id="ranking-content" class="ranking-content"><div class="loading-state">Loading rankings…</div></div>
       </section>
+      <section id="player-view-panel" class="tab-panel player-view-panel" role="tabpanel" aria-labelledby="tab-player-view" hidden>
+        <div class="list-heading rankings-heading">
+          <div><h3>Player View</h3><p>Explore current ratings and follow rating changes over calendar dates.</p></div>
+          <button class="refresh-button" id="refresh-player-view" type="button">↻ Refresh</button>
+        </div>
+        <div class="player-view-filter-bar">
+          <label>Player Name
+            <select id="player-view-primary" aria-label="Choose the primary player"><option value="">Select a player</option></select>
+          </label>
+          <label>Format
+            <select id="player-view-format" aria-label="Choose Singles or Doubles"><option value="Singles">Singles</option><option value="Doubles">Doubles</option></select>
+          </label>
+          <label>Sport
+            <select id="player-view-sport" aria-label="Choose a sport"><option value="ALL">All Sports</option><option value="TT">Table Tennis</option><option value="PB">Pickleball</option><option value="BAD">Badminton</option><option value="LT">Lawn Tennis</option></select>
+          </label>
+          <label class="player-view-compare-label">Add comparison
+            <select id="player-view-compare" aria-label="Select additional players to compare" multiple size="4"></select>
+            <small>Choose one or more players. The primary player is excluded from this list.</small>
+          </label>
+        </div>
+        <div class="player-view-section-head"><div><p class="eyebrow dark-eyebrow">CURRENT RATINGS</p><h3 id="player-view-rating-title">Select a player to see ratings</h3><p>All four sports are shown, with Singles and Doubles ratings regardless of the filters above.</p></div></div>
+        <div id="player-view-rating-tiles" class="player-view-rating-grid"><div class="insight-empty">Choose a player to view current ratings.</div></div>
+        <div class="player-view-section-head chart-section-head"><div><p class="eyebrow dark-eyebrow">RATING JOURNEY</p><h3>Historical rating changes</h3><p>Ratings are plotted by match calendar date. Use Sport and Format above to narrow the chart.</p></div></div>
+        <div class="player-view-chart-card">
+          <div id="player-view-chart-status" class="directory-status" role="status" aria-live="polite">Loading rating history…</div>
+          <div class="player-view-chart-wrap"><canvas id="player-view-chart" aria-label="Historical Elo rating line chart" role="img"></canvas></div>
+          <div id="player-view-legend-note" class="player-view-legend-note"></div>
+        </div>
+      </section>
+
       <section id="insights-panel" class="tab-panel insights-panel" role="tabpanel" aria-labelledby="tab-insights" hidden>
         <div class="insights-hero">
           <div><p class="eyebrow">THE SRGF SPORTS SCOREBOARD</p><h2>Big plays. Bright futures.</h2><p>Quick highlights and the highest-rated player in each sport. Open Sports Ranking for the full leaderboards and match history.</p></div>
@@ -226,6 +257,7 @@
   
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <script src="./js/app.js"></script>
   <script src="./js/admin.js"></script>
 </body>

@@ -694,6 +694,10 @@
   $("#player-view-format").addEventListener("change", renderPlayerViewChart);
   $("#player-view-sport").addEventListener("change", renderPlayerViewChart);
   $("#player-view-compare").addEventListener("change", renderPlayerViewChart);
+  $("#player-view-clear-compare").addEventListener("click", () => {
+    Array.from($("#player-view-compare").options).forEach(option => { option.selected = false; });
+    renderPlayerViewChart();
+  });
   $("#refresh-player-view").addEventListener("click", refreshPlayerView);
   $("#player-view-export").addEventListener("click", exportPlayerViewHistory);
 

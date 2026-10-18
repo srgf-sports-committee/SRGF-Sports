@@ -70,6 +70,43 @@
     container.innerHTML = events.map(event => eventCard(event, archived)).join("");
   }
 
+  function renderFeaturedEvent() {
+    const title = $("#home-featured-name");
+    const description = $("#home-featured-description");
+    const link = $("#home-featured-link");
+    const badgeTop = $("#home-featured-badge-top");
+    const badgeName = $("#home-featured-badge-name");
+    const badgeYear = $("#home-featured-badge-year");
+    if (!title || !description || !link) return;
+    const markedFeatured = allEvents.find(event => /^(TRUE|YES|1|FEATURED)$/i.test(field(event, "Featured", "Is Featured", "Featured Event")));
+    const racketlon = allEvents.find(event => /racketlon/i.test(field(event, "Event Name", "eventName", "Name", "name")));
+    const event = markedFeatured || racketlon || {
+      "Event Name": "SRGF Racketlon 2027",
+      "Sport": "Racketlon",
+      "Website URL": RACKETLON_URL
+    };
+    const name = field(event, "Event Name", "eventName", "Name", "name") || "SRGF Sports Event";
+    const sport = field(event, "Sport", "sport") || "SRGF Sports";
+    const year = name.match(/\b20\d{2}\b/);
+    const website = safeUrl(field(event, "Website URL", "Website Url", "Website Link", "Event Website", "websiteUrl", "website"));
+    const registration = safeUrl(field(event, "Registration URL", "Registration Url", "Register URL", "Register Url", "Registration Link", "Register Link", "Registration Page", "Register Page", "Registration", "Register", "registrationUrl", "registerUrl", "registrationLink", "registerLink"));
+    const results = safeUrl(field(event, "Results URL", "Results Url", "Result URL", "Result Url", "Results Link", "Result Link", "Results Page", "Result Page", "Results", "Result", "resultsUrl", "resultUrl", "resultsLink", "resultLink"));
+    const destination = website || registration || results || (/racketlon/i.test(name) ? RACKETLON_URL : "");
+    title.textContent = name;
+    description.textContent = "Explore " + sport + " event information, registration and results.";
+    if (destination) {
+      link.href = destination;
+      link.textContent = (website ? "Open event website" : registration ? "Open registration" : "View results") + " ↗";
+      link.hidden = false;
+    } else {
+      link.removeAttribute("href");
+      link.hidden = true;
+    }
+    if (badgeTop) badgeTop.textContent = "SRGF";
+    if (badgeName) badgeName.textContent = sport.toUpperCase();
+    if (badgeYear) badgeYear.textContent = year ? year[0] : "FEATURED";
+  }
+
   function render() {
     const statusKey = event => normalStatus(event).replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
     const archivedStatuses = new Set(["ARCHIVED", "COMPLETED", "CLOSED", "FINISHED", "RESULTS PUBLISHED"]);
@@ -98,6 +135,7 @@
     if (archivedCount) archivedCount.textContent = archived.length;
     if (homeUpcomingCount) homeUpcomingCount.textContent = upcoming.length;
     if (homeArchivedCount) homeArchivedCount.textContent = archived.length;
+    renderFeaturedEvent();
     renderList("#upcoming-list", upcoming, false);
     renderList("#archived-list", archived, true);
   }
@@ -232,6 +270,7 @@
   const allowedTabs = ["home", "upcoming", "archived", "rankings", "player-view"];
   const initialTab = initialParams.get("tab");
   if (allowedTabs.includes(initialTab || "")) activateTab(initialTab, false);
+  window.addEventListener("srgf-featured-event-updated", () => loadEvents(true));
   $("#refresh-upcoming").addEventListener("click", () => loadEvents(true));
   $("#refresh-archived").addEventListener("click", () => loadEvents(true));
 

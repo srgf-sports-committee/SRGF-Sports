@@ -464,7 +464,11 @@
     primary.innerHTML = '<option value="">Select a player</option>' + players.map(([id,name]) =>
       '<option value="' + escapeHtml(id) + '">' + escapeHtml(name) + '</option>'
     ).join("");
-    primary.value = players.some(([id]) => id === previousPrimary) ? previousPrimary : "";
+    // On the first page load, select the first player in the list automatically.
+    // On later refreshes, preserve the user's current selection when it still exists.
+    primary.value = players.some(([id]) => id === previousPrimary)
+      ? previousPrimary
+      : (!playerViewFiltersInitialized && players.length ? players[0][0] : "");
     const excludedId = primary.value;
     compare.innerHTML = players.filter(([id]) => id !== excludedId).map(([id,name]) =>
       '<option value="' + escapeHtml(id) + '">' + escapeHtml(name + " (" + id + ")") + '</option>'

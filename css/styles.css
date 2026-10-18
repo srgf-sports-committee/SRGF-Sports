@@ -147,6 +147,7 @@ body:has(.hero){background:linear-gradient(180deg,#102f3c 0,#163f4b 430px,#f5f7f
 .insight-kpi{position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:flex-start;gap:5px;min-width:0;padding:18px;border-radius:19px;background:white;border:1px solid #e4eaf2;box-shadow:0 8px 24px #1a385008}
 .insight-kpi:after{content:"";position:absolute;width:90px;height:90px;border-radius:50%;right:-34px;top:-38px;background:currentColor;opacity:.07}
 .insight-kpi .kpi-icon{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:#fff;font-size:19px;margin-bottom:5px}
+.insight-kpi .pickleball-card-icon{display:block;width:36px;height:36px;flex:0 0 36px;margin-bottom:5px}
 .insight-kpi small{font-size:9px;letter-spacing:.12em;font-weight:900;color:#68758a}
 .insight-kpi>strong{font-size:29px;line-height:1.15;letter-spacing:-.04em;color:#1a2d42;overflow-wrap:anywhere}
 .insight-kpi>span:last-child{font-size:10px;color:#65748a;line-height:1.4}

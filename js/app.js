@@ -583,19 +583,47 @@
     const players = new Map(playerViewPlayerList());
     const allCodes = ["TT","PB","BAD","LT"];
     const codes = sport === "ALL" ? allCodes : [sport];
-    const months = [];
+    const rowDate = row => String(row["Match Date"] || "").slice(0,10);
+    const periodControl = $("#player-view-chart-period");
+    const period = periodControl ? periodControl.value : "last12";
     const now = new Date();
-    for (let year=2026, month=0; year<now.getFullYear() || (year===now.getFullYear() && month<=now.getMonth()); ) {
-      months.push(year + "-" + String(month+1).padStart(2,"0"));
-      month++;
-      if (month===12) { month=0; year++; }
+    const eligibleDates = playerViewHistory.filter(row =>
+      playerIds.includes(String(row["Player ID"] || "").trim()) &&
+      String(row.Format || "").toLowerCase() === format.toLowerCase() &&
+      codes.includes(String(row["Sport Code"] || "").toUpperCase()) &&
+      /^\\d{4}-\\d{2}-\\d{2}/.test(rowDate(row))
+    ).map(rowDate).sort();
+    const availableYears = Array.from(new Set(eligibleDates.map(date => Number(date.slice(0,4))))).sort((a,b)=>a-b);
+    if (periodControl) {
+      const currentValue = periodControl.value || "last12";
+      const yearOptions = availableYears.map(year => '<option value="year:'+year+'">'+year+'</option>').join("");
+      const wantedValue = currentValue;
+      periodControl.innerHTML = '<option value="last12">Last 12 months</option><option value="all">All historical data</option>' + yearOptions;
+      periodControl.value = Array.from(periodControl.options).some(option=>option.value===wantedValue) ? wantedValue : "last12";
+    }
+    const activePeriod = periodControl ? periodControl.value : "last12";
+    let startYear, startMonth, endYear=now.getFullYear(), endMonth=now.getMonth()+1;
+    if (activePeriod.startsWith("year:")) {
+      startYear = Number(activePeriod.slice(5)); startMonth = 1;
+      endYear = startYear; endMonth = startYear===now.getFullYear() ? now.getMonth()+1 : 12;
+    } else if (activePeriod === "all") {
+      const firstDate = eligibleDates[0];
+      startYear = firstDate ? Number(firstDate.slice(0,4)) : now.getFullYear();
+      startMonth = firstDate ? Number(firstDate.slice(5,7)) : now.getMonth()+1;
+    } else {
+      const end = new Date(now.getFullYear(),now.getMonth(),1);
+      const start = new Date(end.getFullYear(),end.getMonth()-11,1);
+      startYear = start.getFullYear(); startMonth = start.getMonth()+1;
+    }
+    const months = [];
+    for(let year=startYear,month=startMonth; year<endYear || (year===endYear && month<=endMonth); ){
+      months.push(year+"-"+String(month).padStart(2,"0"));
+      month++; if(month===13){month=1;year++;}
     }
     if (!months.length) {
-      status.textContent = "Monthly rating history starts in January 2026.";
+      status.textContent = "No monthly rating history is available for this selection yet.";
       return;
     }
-
-    const rowDate = row => String(row["Match Date"] || "").slice(0,10);
     const selectedRows = playerViewHistory.filter(row =>
       playerIds.includes(String(row["Player ID"] || "").trim()) &&
       String(row.Format || "").toLowerCase() === format.toLowerCase() &&
@@ -614,14 +642,15 @@
         ).sort((a,b) => rowDate(a).localeCompare(rowDate(b)) ||
           String(a["Recorded At"] || "").localeCompare(String(b["Recorded At"] || "")));
         let carryRating = 1000;
-        rows.filter(row => rowDate(row) < "2026-01-01").forEach(row => {
-          carryRating = Number(row["Elo After"]);
-        });
-        const from2026 = rows.filter(row => rowDate(row) >= "2026-01-01");
+        let rowIndex = 0;
         sportMonthly[code] = months.map(monthKey => {
-          const inMonth = from2026.filter(row => rowDate(row).slice(0,7) === monthKey);
-          if (inMonth.length) carryRating = Number(inMonth[inMonth.length-1]["Elo After"]);
-          return carryRating;
+          let latestInMonth = null;
+          while (rowIndex < rows.length && rowDate(rows[rowIndex]).slice(0,7) <= monthKey) {
+            if (rowDate(rows[rowIndex]).slice(0,7) === monthKey) latestInMonth = rows[rowIndex];
+            carryRating = Number(rows[rowIndex]["Elo After"]);
+            rowIndex++;
+          }
+          return latestInMonth ? Number(latestInMonth["Elo After"]) : carryRating;
         });
       });
 
@@ -686,12 +715,12 @@
           tooltip:{callbacks:{label:context=>context.dataset.label+": "+(context.parsed.y==null?"—":context.parsed.y.toFixed(2)+" Elo")}}
         },
         scales:{
-          x:{title:{display:true,text:"Month"},ticks:{maxRotation:0,minRotation:0,autoSkip:false}},
+          x:{title:{display:true,text:"Month"},ticks:{maxRotation:0,minRotation:0,autoSkip:true,maxTicksLimit:activePeriod==="all"?18:12}},
           y:{title:{display:true,text:!showComparisons || sport==="ALL"?"Monthly Elo rating":"Monthly Elo rating"},beginAtZero:false}
         }
       }
     });
-    status.textContent="Showing monthly ratings from Jan 2026 to "+labels[labels.length-1]+". Missing months carry forward the previous rating.";
+    status.textContent="Showing "+(activePeriod==="last12"?"the latest 12 months":activePeriod==="all"?"all available historical months":"calendar year "+activePeriod.slice(5))+" through "+labels[labels.length-1]+". Missing months carry forward the previous rating.";
     if(note) note.textContent=!showComparisons
       ?"Full profile: four solid lines show Table Tennis, Pickleball, Badminton and Lawn Tennis; the dotted line shows the average across all four sports for "+format+". Each sport carries its last rating forward when there is no match that month."
       :sport==="ALL"
@@ -785,6 +814,7 @@
   playerViewShowComparisons.addEventListener("change", syncPlayerViewComparisonControls);
   playerViewShowComparisons.checked = false;
   syncPlayerViewComparisonControls();
+  $("#player-view-chart-period").addEventListener("change", renderPlayerViewChart);
   $("#player-view-format").addEventListener("change", renderPlayerViewChart);
   $("#player-view-sport").addEventListener("change", renderPlayerViewChart);
   $("#player-view-compare").addEventListener("change", renderPlayerViewChart);

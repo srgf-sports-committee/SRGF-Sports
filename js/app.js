@@ -566,8 +566,16 @@
         format: best.format
       };
     }).filter(Boolean).sort((a, b) => a.rank - b.rank || b.rating - a.rating);
-    const bestSportsText = bestSports.length
-      ? bestSports.map(item => item.name + " (#" + item.rank + ", " + item.format + " " + item.rating + ")").join(" · ")
+    // If sports share the same rank and Elo, show only one of them.
+    const seenBestScores = new Set();
+    const conciseBestSports = bestSports.filter(item => {
+      const key = item.rank + "|" + item.rating;
+      if (seenBestScores.has(key)) return false;
+      seenBestScores.add(key);
+      return true;
+    });
+    const bestSportsText = conciseBestSports.length
+      ? conciseBestSports.map(item => item.name + " (" + (item.format === "Singles" ? "S" : "D") + ")").join(" · ")
       : "No ratings yet";
     const details = [
       ["Player ID", playerId],

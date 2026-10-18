@@ -1096,13 +1096,16 @@
     const sportHighlights = rankingSports.map((sport, sportIndex) => {
       const label = sport.name || String(sport.sheetName || "").replace(/-Rating$/i,"");
       const code = String(sport.code || sport.sheetName || label).replace(/-Rating$/i,"").toUpperCase();
-      const iconsByCode = {TT:"🏓",PB:"🥒",BAD:"🏸",LT:"🎾"};
+      const iconsByCode = {TT:"🏓",PB:"",BAD:"🏸",LT:"🎾"};
       const ratingRows = insightRows(sport)
         .filter(row => playerMatchesCategory(row["Player ID"], gender, ageBands))
         .map(row => ({name:String(row["Player Name"] || ""), id:String(row["Player ID"] || ""), elo:Number(row[eloKey] || 1000)}))
         .sort((a,b) => b.elo-a.elo || a.name.localeCompare(b.name));
       const leader = ratingRows[0];
-      return '<article class="insight-kpi kpi-elo"><span class="kpi-icon">' + (iconsByCode[code] || ["🏓","🥒","🏸","🎾"][sportIndex%4]) + '</span><small>HIGHEST ' + escapeHtml(format.toUpperCase()) + ' · ' + escapeHtml(label.toUpperCase()) + '</small><strong>' + (leader ? escapeHtml(leader.elo) : "—") + '</strong><span>' + (leader ? escapeHtml(leader.name) + ' · ' + escapeHtml(leader.id) : 'No matching players') + '</span></article>';
+      const sportIcon = code === "PB"
+        ? '<svg class="pickleball-card-icon" viewBox="0 0 64 64" role="img" aria-label="Pickleball paddle and ball"><g transform="rotate(35 25 28)"><rect x="14" y="5" width="23" height="34" rx="11" fill="#173b65"/><rect x="21" y="34" width="9" height="22" rx="4" fill="#173b65"/><path d="M19 12h13M18 17h15" stroke="#5cc5e8" stroke-width="2" stroke-linecap="round"/><g fill="#b8d8ef"><circle cx="20" cy="24" r="1"/><circle cx="26" cy="22" r="1"/><circle cx="31" cy="25" r="1"/><circle cx="22" cy="29" r="1"/><circle cx="28" cy="30" r="1"/></g></g><circle cx="45" cy="43" r="12" fill="#f7d82d" stroke="#d7ad11" stroke-width="1.5"/><g fill="#b98d08"><circle cx="41" cy="37" r="1.8"/><circle cx="49" cy="38" r="1.8"/><circle cx="38" cy="44" r="1.8"/><circle cx="46" cy="46" r="1.8"/><circle cx="43" cy="51" r="1.8"/><circle cx="52" cy="44" r="1.8"/></g></svg>'
+        : '<span class="kpi-icon">' + (iconsByCode[code] || ["🏓","🏓","🏸","🎾"][sportIndex%4]) + '</span>';
+      return '<article class="insight-kpi kpi-elo">' + sportIcon + '<small>HIGHEST ' + escapeHtml(format.toUpperCase()) + ' · ' + escapeHtml(label.toUpperCase()) + '</small><strong>' + (leader ? escapeHtml(leader.elo) : "—") + '</strong><span>' + (leader ? escapeHtml(leader.name) + ' · ' + escapeHtml(leader.id) : 'No matching players') + '</span></article>';
     });
     const allSportsLeader = players[0];
     const allSportsCard = '<article class="insight-kpi kpi-elo"><span class="kpi-icon">🌐</span><small>HIGHEST ALL SPORTS ELO · ' + escapeHtml(format.toUpperCase()) + '</small><strong>' + (allSportsLeader ? escapeHtml(Math.round(allSportsLeader.average)) : "—") + '</strong><span>' + (allSportsLeader ? escapeHtml(allSportsLeader.name) + ' · ' + escapeHtml(allSportsLeader.id) + ' · ' + allSportsLeader.sports.length + ' sport(s)' : 'No matching players') + '</span></article>';

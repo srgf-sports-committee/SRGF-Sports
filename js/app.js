@@ -126,9 +126,6 @@
       loadRankings();
     } else if (name === "player-view") {
       loadRankings().then(loadPlayerViewHistory);
-    } else if (name === "insights") {
-      loadEvents();
-      loadRankings();
     } else if (name === "admin") {
       window.dispatchEvent(new CustomEvent("srgf-admin-tab-activated"));
     } else if (name === "home") {
@@ -175,7 +172,7 @@
   }));
   restoreRankingFilters();
   const initialParams = new URLSearchParams(window.location.search);
-  const allowedTabs = ["home", "upcoming", "archived", "rankings", "player-view", "insights"];
+  const allowedTabs = ["home", "upcoming", "archived", "rankings", "player-view"];
   const initialTab = initialParams.get("tab");
   if (allowedTabs.includes(initialTab || "")) activateTab(initialTab, false);
   $("#refresh-upcoming").addEventListener("click", loadEvents);

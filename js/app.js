@@ -545,10 +545,35 @@
     const profile = playerProfiles.get(String(playerId).trim().toUpperCase()) || {};
     const gender = field(profile, "Gender", "gender", "Sex") || "Not provided";
     const age = playerAge(profile);
+    // Rank each sport using the player's best-ranked format; break equal ranks by higher Elo.
+    const bestSports = rankingSports.map(sport => {
+      const rows = rankingObjects(sport);
+      const player = rows.find(item => String(item["Player ID"] || "").trim().toUpperCase() === String(playerId).trim().toUpperCase());
+      if (!player) return null;
+      const formats = ["Singles Elo", "Doubles Elo"].map(key => {
+        if (player[key] === "" || player[key] == null || !Number.isFinite(Number(player[key]))) return null;
+        const rating = Number(player[key]);
+        const rank = 1 + rows.filter(item => item[key] !== "" && item[key] != null && Number.isFinite(Number(item[key])) && Number(item[key]) > rating).length;
+        return { format: key.startsWith("Singles") ? "Singles" : "Doubles", rating, rank };
+      }).filter(Boolean);
+      if (!formats.length) return null;
+      formats.sort((a, b) => a.rank - b.rank || b.rating - a.rating);
+      const best = formats[0];
+      return {
+        name: sport.name || String(sport.sheetName || "").replace(/-Rating$/i, ""),
+        rank: best.rank,
+        rating: best.rating,
+        format: best.format
+      };
+    }).filter(Boolean).sort((a, b) => a.rank - b.rank || b.rating - a.rating);
+    const bestSportsText = bestSports.length
+      ? bestSports.map(item => item.name + " (#" + item.rank + ", " + item.format + " " + item.rating + ")").join(" · ")
+      : "No ratings yet";
     const details = [
       ["Player ID", playerId],
       ["Gender", gender],
-      ["Age", age === null ? "Not provided" : String(age)]
+      ["Age", age === null ? "Not provided" : String(age)],
+      ["Best Sports", bestSportsText]
     ];
     container.innerHTML =
       '<div class="player-basic-info-heading"><span class="player-basic-avatar" aria-hidden="true">♟</span><div><small>PLAYER PROFILE</small><strong>' + escapeHtml(playerName || "Player") + '</strong></div></div>' +

@@ -502,7 +502,6 @@
     if (!canvas || !status) return;
     if (playerViewChart) { playerViewChart.destroy(); playerViewChart = null; }
     const primaryId = $("#player-view-primary").value;
-    const primaryPlayer = playerViewPlayerList().find(item => item[0] === primaryId);
     const compareIds = Array.from($("#player-view-compare").selectedOptions).map(option => option.value);
     const playerIds = [primaryId].concat(compareIds).filter(Boolean);
     const format = $("#player-view-format").value;
@@ -512,72 +511,141 @@
       if (note) note.textContent = "";
       return;
     }
+
+    const players = new Map(playerViewPlayerList());
+    const codes = sport === "ALL" ? ["TT","PB","BAD","LT"] : [sport];
+    const months = [];
+    const now = new Date();
+    for (let year=2026, month=0; year<now.getFullYear() || (year===now.getFullYear() && month<=now.getMonth()); ) {
+      months.push(year + "-" + String(month+1).padStart(2,"0"));
+      month++;
+      if (month===12) { month=0; year++; }
+    }
+    if (!months.length) {
+      status.textContent = "Monthly rating history starts in January 2026.";
+      return;
+    }
+
     const selectedRows = playerViewHistory.filter(row =>
       playerIds.includes(String(row["Player ID"] || "").trim()) &&
       String(row.Format || "").toLowerCase() === format.toLowerCase() &&
-      (sport === "ALL" || String(row["Sport Code"] || "").toUpperCase() === sport) &&
+      codes.includes(String(row["Sport Code"] || "").toUpperCase()) &&
       Number.isFinite(Number(row["Elo After"])) &&
       String(row["Match Date"] || "").trim()
     );
-    if (!selectedRows.length) {
-      status.textContent = "No rating history is available for the selected player, sport and format.";
-      if (note) note.textContent = "The chart uses completed matches in the RatingHistory sheets.";
-      return;
-    }
-    const players = new Map(playerViewPlayerList());
+    const rowDate = row => String(row["Match Date"] || "").slice(0,10);
     const bySeries = new Map();
-    selectedRows.forEach(row => {
-      const id = String(row["Player ID"] || "").trim();
-      const code = String(row["Sport Code"] || "").toUpperCase();
+    // Include each selected player/sport combination, even if they have no
+    // match yet; the Elo starting point is 1000 and then carries forward.
+    playerIds.forEach(id => codes.forEach(code => {
       const key = id + "|" + code;
-      if (!bySeries.has(key)) bySeries.set(key, {id,code,sport:String(row.Sport || code),name:players.get(id) || row["Player Name"] || id,byDate:new Map()});
-      const date = String(row["Match Date"]).slice(0,10);
-      const series = bySeries.get(key);
-      const previous = series.byDate.get(date);
-      if (!previous || String(row["Recorded At"] || "") >= previous.recordedAt) {
-        series.byDate.set(date,{rating:Number(row["Elo After"]),recordedAt:String(row["Recorded At"] || "")});
-      }
+      const first = selectedRows.filter(row => String(row["Player ID"] || "").trim()===id && String(row["Sport Code"] || "").toUpperCase()===code)
+        .sort((a,b)=>rowDate(a).localeCompare(rowDate(b)) || String(a["Recorded At"]||"").localeCompare(String(b["Recorded At"]||"")))[0];
+      bySeries.set(key,{
+        id,code,name:players.get(id)||id,
+        sport:String((first && first.Sport) || ({TT:"Table Tennis",PB:"Pickleball",BAD:"Badminton",LT:"Lawn Tennis"})[code] || code),
+        rows:selectedRows.filter(row=>String(row["Player ID"]||"").trim()===id && String(row["Sport Code"]||"").toUpperCase()===code)
+          .sort((a,b)=>rowDate(a).localeCompare(rowDate(b)) || String(a["Recorded At"]||"").localeCompare(String(b["Recorded At"]||""))),
+        byMonth:new Map()
+      });
+    }));
+
+    bySeries.forEach(series => {
+      let carryRating = 1000;
+      // If history exists before January 2026, carry its last rating into Jan.
+      series.rows.filter(row=>rowDate(row)<"2026-01-01").forEach(row=>{carryRating=Number(row["Elo After"]);});
+      const rowsFrom2026 = series.rows.filter(row=>rowDate(row)>="2026-01-01");
+      months.forEach(monthKey => {
+        const inMonth = rowsFrom2026.filter(row=>rowDate(row).slice(0,7)===monthKey);
+        if (inMonth.length) carryRating = Number(inMonth[inMonth.length-1]["Elo After"]);
+        series.byMonth.set(monthKey,carryRating);
+      });
     });
-    const labels = Array.from(new Set(Array.from(bySeries.values()).flatMap(s => Array.from(s.byDate.keys())))).sort();
-    const datasets = Array.from(bySeries.values()).sort((a,b) =>
-      (a.id === primaryId ? -1 : b.id === primaryId ? 1 : a.name.localeCompare(b.name)) || a.code.localeCompare(b.code)
-    ).map((series,index) => {
+
+    const labels = months.map(key => {
+      const [year,month]=key.split("-").map(Number);
+      return new Date(year,month-1,1).toLocaleDateString(undefined,{month:"short",year:"numeric"});
+    });
+    const datasets = Array.from(bySeries.values()).map((series,index) => {
       const sportIndex = ["TT","PB","BAD","LT"].indexOf(series.code);
-      const colorIndex = Math.max(0, playerIds.indexOf(series.id)) * 4 + Math.max(0,sportIndex);
-      const color = PLAYER_VIEW_COLORS[(colorIndex < 0 ? index : colorIndex) % PLAYER_VIEW_COLORS.length];
+      const playerIndex = Math.max(0,playerIds.indexOf(series.id));
+      const color = PLAYER_VIEW_COLORS[(playerIndex*4+Math.max(0,sportIndex))%PLAYER_VIEW_COLORS.length];
       return {
-        label: series.name + " · " + series.sport,
-        data: labels.map(date => series.byDate.has(date) ? series.byDate.get(date).rating : null),
-        borderColor: color, backgroundColor: color, borderWidth: series.id === primaryId ? 3 : 2,
-        borderDash: series.id === primaryId ? [] : [6,4], pointRadius: 2, pointHoverRadius: 5,
-        tension: .22, spanGaps: true
+        label:series.name+" · "+series.sport,
+        data:months.map(month=>series.byMonth.get(month)),
+        borderColor:color,backgroundColor:color,borderWidth:series.id===primaryId?3:2,
+        borderDash:series.id===primaryId?[]:[6,4],pointRadius:2,pointHoverRadius:5,
+        tension:.22,spanGaps:true
       };
     });
     if (typeof Chart === "undefined") {
       status.textContent = "The chart library could not be loaded. Please refresh the page.";
       return;
     }
-    playerViewChart = new Chart(canvas, {
-      type: "line",
-      data: {labels, datasets},
-      options: {
-        responsive: true, maintainAspectRatio: false, interaction: {mode:"index",intersect:false},
-        plugins: {
-          legend: {position:"bottom",labels:{usePointStyle:true,boxWidth:8,padding:16}},
-          tooltip: {callbacks:{label:context => context.dataset.label + ": " + (context.parsed.y == null ? "—" : context.parsed.y.toFixed(2) + " Elo")}}
+    playerViewChart = new Chart(canvas,{
+      type:"line",data:{labels,datasets},
+      options:{
+        responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+        plugins:{
+          legend:{position:"bottom",labels:{usePointStyle:true,boxWidth:8,padding:16}},
+          tooltip:{callbacks:{label:context=>context.dataset.label+": "+(context.parsed.y==null?"—":context.parsed.y.toFixed(2)+" Elo")}}
         },
-        scales: {
-          x: {title:{display:true,text:"Calendar date"},ticks:{maxRotation:45,minRotation:0,autoSkip:true,maxTicksLimit:12}},
-          y: {title:{display:true,text:"Elo rating"},beginAtZero:false}
+        scales:{
+          x:{title:{display:true,text:"Month"},ticks:{maxRotation:0,minRotation:0,autoSkip:false}},
+          y:{title:{display:true,text:"Monthly Elo rating"},beginAtZero:false}
         }
       }
     });
-    status.textContent = "Showing " + labels.length + " calendar date(s) across " + datasets.length + " player/sport line(s).";
-    if (note) note.textContent = sport === "ALL"
-      ? "All Sports plots a separate line for each selected player in each sport. " + format + " ratings are shown."
-      : "Showing " + format + " rating history for " + ($("#player-view-sport option:checked")?.textContent || sport) + ".";
+    status.textContent="Showing monthly ratings from Jan 2026 to "+labels[labels.length-1]+". Missing months carry forward the previous rating.";
+    if(note) note.textContent=sport==="ALL"
+      ?"All Sports plots one line per selected player for each sport. Each month uses the latest rating change that month; otherwise the prior rating is carried forward. "+format+" ratings are shown."
+      :"Showing "+format+" monthly rating history for "+($("#player-view-sport option:checked")?.textContent||sport)+".";
   }
 
+  function exportPlayerViewHistory() {
+    const primaryId=$("#player-view-primary").value;
+    if(!primaryId) { alert("Please select a primary player first."); return; }
+    if(typeof XLSX==="undefined") { alert("The Excel export library could not be loaded. Please refresh and try again."); return; }
+    const selectedIds=[primaryId].concat(Array.from($("#player-view-compare").selectedOptions).map(option=>option.value));
+    const players=new Map(playerViewPlayerList());
+    const sportNames={TT:"Table Tennis",PB:"Pickleball",BAD:"Badminton",LT:"Lawn Tennis"};
+    const sportCodes=["TT","PB","BAD","LT"];
+    const exportHeaders=["Match Date","Player Name","Player ID","Format","Match ID","Opponent(s)","Result","Elo Before","Elo Change","Elo After","Rank Before","Rank After","Recorded At"];
+    const workbook=XLSX.utils.book_new();
+    sportCodes.forEach(code=>{
+      ["Singles","Doubles"].forEach(format=>{
+        const rows=playerViewHistory.filter(row=>
+          selectedIds.includes(String(row["Player ID"]||"").trim()) &&
+          String(row["Sport Code"]||"").toUpperCase()===code &&
+          String(row.Format||"").toLowerCase()===format.toLowerCase() &&
+          String(row["Match Date"]||"").trim()
+        ).sort((a,b)=>String(a["Match Date"]).localeCompare(String(b["Match Date"])) ||
+          String(a["Recorded At"]||"").localeCompare(String(b["Recorded At"]||"")) ||
+          String(a["Player Name"]||"").localeCompare(String(b["Player Name"]||"")));
+        const data=[exportHeaders].concat(rows.map(row=>[
+          String(row["Match Date"]||"").slice(0,10),
+          players.get(String(row["Player ID"]||"").trim())||row["Player Name"]||"",
+          String(row["Player ID"]||""),
+          String(row.Format||format),
+          String(row["Match ID"]||""),
+          String(row["Opponent(s)"]||""),
+          String(row.Result||""),
+          row["Elo Before"]===""?"":Number(row["Elo Before"]),
+          row["Elo Change"]===""?"":Number(row["Elo Change"]),
+          row["Elo After"]===""?"":Number(row["Elo After"]),
+          row["Rank Before"]===""?"":Number(row["Rank Before"]),
+          row["Rank After"]===""?"":Number(row["Rank After"]),
+          String(row["Recorded At"]||"")
+        ]));
+        const sheet=XLSX.utils.aoa_to_sheet(data);
+        sheet["!cols"]=[{wch:13},{wch:24},{wch:20},{wch:11},{wch:20},{wch:28},{wch:12},{wch:13},{wch:13},{wch:13},{wch:12},{wch:12},{wch:24}];
+        const sheetName=({TT:"TT",PB:"Pickleball",BAD:"Badminton",LT:"Lawn Tennis"})[code]+" "+format;
+        XLSX.utils.book_append_sheet(workbook,sheet,sheetName.slice(0,31));
+      });
+    });
+    const stamp=new Date().toISOString().slice(0,10);
+    XLSX.writeFile(workbook,"SRGF_Player_Rating_History_"+stamp+".xlsx");
+  }
   async function loadPlayerViewHistory() {
     const status = $("#player-view-chart-status");
     if (status) status.textContent = "Loading rating history…";
@@ -609,6 +677,7 @@
   $("#player-view-sport").addEventListener("change", renderPlayerViewChart);
   $("#player-view-compare").addEventListener("change", renderPlayerViewChart);
   $("#refresh-player-view").addEventListener("click", refreshPlayerView);
+  $("#player-view-export").addEventListener("click", exportPlayerViewHistory);
 
   function playerAge(profile) {
     if (!profile) return null;

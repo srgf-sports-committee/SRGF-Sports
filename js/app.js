@@ -575,16 +575,14 @@
       };
     }).filter(Boolean);
     const hasGamesPlayed = bestSports.some(sport => sport.matches > 0);
-    const eligibleBestSports = (hasGamesPlayed
-      ? bestSports.filter(sport => sport.matches > 0)
-      : bestSports
-    ).sort((a, b) => a.rank - b.rank || b.rating - a.rating || b.wins - a.wins);
-    // Show only the single best eligible sport. If rank and Elo tie, higher games won wins.
-    // If all formats have zero games, use rank, Elo, then wins as the fallback.
+    const eligibleBestSports = hasGamesPlayed
+      ? bestSports.filter(sport => sport.matches > 0).sort((a, b) => a.rank - b.rank || b.rating - a.rating || b.wins - a.wins)
+      : [];
+    // Show only the single best eligible sport; if all formats have zero games, show Never played.
     const bestSport = eligibleBestSports[0];
     const bestSportsText = bestSport
       ? bestSport.name + " (" + (bestSport.format === "Singles" ? "S" : "D") + ")"
-      : "No ratings yet";
+      : "Never played";
     const details = [
       ["Player ID", playerId],
       ["Gender", gender],

@@ -508,10 +508,11 @@
     if (!canvas || !status) return;
     if (playerViewChart) { playerViewChart.destroy(); playerViewChart = null; }
     const primaryId = $("#player-view-primary").value;
-    const compareIds = Array.from($("#player-view-compare").selectedOptions).map(option => option.value);
+    const showComparisons = $("#player-view-show-comparisons")?.checked === true;
+    const compareIds = showComparisons ? Array.from($("#player-view-compare").selectedOptions).map(option => option.value) : [];
     const playerIds = [primaryId].concat(compareIds).filter(Boolean);
     const format = $("#player-view-format").value;
-    const sport = $("#player-view-sport").value;
+    const sport = showComparisons ? $("#player-view-sport").value : "ALL";
     if (!primaryId) {
       status.textContent = "Select a primary player to display rating history.";
       if (note) note.textContent = "";
@@ -691,6 +692,21 @@
     renderPlayerViewRatings();
     renderPlayerViewChart();
   });
+  const playerViewShowComparisons = $("#player-view-show-comparisons");
+  const playerViewSportFilter = $("#player-view-sport");
+  const playerViewCompareFilter = $("#player-view-compare");
+  function syncPlayerViewComparisonControls() {
+    const enabled = playerViewShowComparisons.checked;
+    playerViewSportFilter.disabled = !enabled;
+    playerViewCompareFilter.disabled = !enabled;
+    $("#player-view-clear-compare").disabled = !enabled;
+    playerViewSportFilter.value = "ALL";
+    if (!enabled) Array.from(playerViewCompareFilter.options).forEach(option => { option.selected = false; });
+    renderPlayerViewChart();
+  }
+  playerViewShowComparisons.addEventListener("change", syncPlayerViewComparisonControls);
+  playerViewShowComparisons.checked = false;
+  syncPlayerViewComparisonControls();
   $("#player-view-format").addEventListener("change", renderPlayerViewChart);
   $("#player-view-sport").addEventListener("change", renderPlayerViewChart);
   $("#player-view-compare").addEventListener("change", renderPlayerViewChart);

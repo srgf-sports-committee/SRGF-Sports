@@ -147,7 +147,7 @@
           </label>
           <div class="player-view-export-control"><button class="button button-dark" id="player-view-export" type="button">Export selected players (.xlsx)</button><small>Exports 8 sheets: one for each sport and Singles/Doubles, with actual match-date rating changes.</small></div>
         </div>
-        <div class="player-view-section-head chart-section-head"><div><p class="eyebrow dark-eyebrow">RATING JOURNEY</p><h3>Monthly rating history</h3><p>Monthly rating from January 2026 onward. Each month uses the latest rating change in that month; months without matches carry forward the previous rating.</p></div></div>
+        <div class="player-view-section-head chart-section-head"><div><p class="eyebrow dark-eyebrow">RATING JOURNEY</p><h3>Rating history</h3><p>Defaults to the latest 12 months. Choose a calendar year or all available history to explore earlier ratings.</p></div><label class="player-view-period-control">Chart period<select id="player-view-chart-period" aria-label="Choose chart time period"><option value="last12">Last 12 months</option><option value="all">All historical data</option></select></label></div>
         <div class="player-view-chart-card">
           <div id="player-view-chart-status" class="directory-status" role="status" aria-live="polite">Loading rating history…</div>
           <div class="player-view-chart-wrap"><canvas id="player-view-chart" aria-label="Historical Elo rating line chart" role="img"></canvas></div>

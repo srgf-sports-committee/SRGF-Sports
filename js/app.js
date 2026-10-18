@@ -566,16 +566,11 @@
         format: best.format
       };
     }).filter(Boolean).sort((a, b) => a.rank - b.rank || b.rating - a.rating);
-    // If sports share the same rank and Elo, show only one of them.
-    const seenBestScores = new Set();
-    const conciseBestSports = bestSports.filter(item => {
-      const key = item.rank + "|" + item.rating;
-      if (seenBestScores.has(key)) return false;
-      seenBestScores.add(key);
-      return true;
-    });
-    const bestSportsText = conciseBestSports.length
-      ? conciseBestSports.map(item => item.name + " (" + (item.format === "Singles" ? "S" : "D") + ")").join(" · ")
+    // Show only the single best sport: best rank first, then highest Elo.
+    // If multiple sports tie on both, the first one is used.
+    const bestSport = bestSports[0];
+    const bestSportsText = bestSport
+      ? bestSport.name + " (" + (bestSport.format === "Singles" ? "S" : "D") + ")"
       : "No ratings yet";
     const details = [
       ["Player ID", playerId],

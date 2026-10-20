@@ -109,7 +109,8 @@ function getPlayers_(ss, includeInactive) {
       id, name: text_(p["Player Name"]), active,
       Gender: text_(p.Gender || p.gender || p.Sex),
       "Date of Birth": text_(p["Date of Birth"] || p.DOB || p["Birth Date"] || p.Birthdate),
-      Age: text_(p.Age || p.age)
+      Age: text_(p.Age || p.age),
+      Photo: text_(p.Photo || p.photo || p.Image || p.image)
     };
   });
   return Object.keys(byId).map(id => byId[id]).filter(p => includeInactive || p.active);
@@ -242,8 +243,17 @@ function doGet(e) {
     if (action === "players") {
       return json_({ok:true,players:getPlayers_(ss,false).map(p=>({
         "Player ID":p.id, "Player Name":p.name, Active:true,
-        Gender:p.Gender, "Date of Birth":p["Date of Birth"], Age:p.Age
+        Gender:p.Gender, "Date of Birth":p["Date of Birth"], Age:p.Age, Photo:p.Photo
       }))});
+    }
+    if (action === "photo") {
+      const fileId = text_(e && e.parameter && (e.parameter.id || e.parameter.fileId));
+      if (!/^[A-Za-z0-9_-]{5,200}$/.test(fileId)) throw new Error("A valid Google Drive photo file ID is required.");
+      const file = DriveApp.getFileById(fileId);
+      const blob = file.getBlob();
+      const mimeType = String(blob.getContentType() || "");
+      if (!/^image\//i.test(mimeType)) throw new Error("The selected Photo file is not an image.");
+      return json_({ok:true,mimeType,base64:Utilities.base64Encode(blob.getBytes())});
     }
     if (action === "rankings") {
       const sports = [];

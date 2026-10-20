@@ -645,7 +645,6 @@
     const raw = String(field(profile, "Git Photo URL", "Photo Git URL", "Photo", "photo", "Image", "image") || "").trim();
     img.hidden = true;
     initials.hidden = false;
-    if (!raw) return;
     const driveIdFrom = value => {
       const v = String(value || "").trim();
       if (/^drive:/i.test(v)) return v.slice(v.indexOf(":") + 1).trim();
@@ -665,6 +664,16 @@
       img.onerror = () => resolve(false);
       img.src = src;
     });
+    // GitHub Actions mirrors Drive photos into this repository every five minutes.
+    // Prefer the fast static copy, trying common optimized formats, before Drive/API fallbacks.
+    const safePlayerId = String(playerId || "").trim().replace(/[^A-Za-z0-9_-]/g, "_");
+    if (safePlayerId) {
+      const base = "https://srgf-sports-committee.github.io/SRGF-Sports/assets/player-photos/" + encodeURIComponent(safePlayerId);
+      for (const ext of [".jpg", ".png"]) {
+        if (await showImage(base + ext)) return;
+      }
+    }
+    if (!raw) return;
     if (/^https?:\/\//i.test(raw) && !/drive\.google\.com/i.test(raw)) {
       if (await showImage(raw)) return;
     }

@@ -672,10 +672,15 @@
       const id = driveId || raw;
       if (!/^[a-zA-Z0-9_-]{5,200}$/.test(id)) return;
 
-      // Drive's open?id= link returns a preview page, not an image. Try its
-      // thumbnail endpoint as an image first, then fall back to the Apps Script
-      // photo endpoint for files the thumbnail endpoint cannot serve.
-      if (await showImage("https://drive.google.com/thumbnail?id=" + encodeURIComponent(id) + "&sz=w400")) return;
+      // Try multiple direct-image routes because Google Drive links can point to
+      // preview pages, thumbnail delivery, or a shared image URL.
+      const imageCandidates = [
+        "https://drive.google.com/thumbnail?id=" + encodeURIComponent(id) + "&sz=w400",
+        "https://drive.google.com/uc?export=view&id=" + encodeURIComponent(id)
+      ];
+      for (const candidate of imageCandidates) {
+        if (await showImage(candidate)) return;
+      }
       try {
         const response = await fetch(API_URL + "?action=photo&id=" + encodeURIComponent(id), {method:"GET", cache:"no-store"});
         if (!response.ok) throw new Error("HTTP " + response.status);

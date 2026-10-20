@@ -318,6 +318,37 @@
       removeButton.disabled = !signedIn;
     }
   }
+  $("#admin-sync-player-photos").addEventListener("click", async () => {
+    const button = $("#admin-sync-player-photos");
+    if (!idToken) {
+      setStatus($("#admin-photo-sync-status"), "Sign in as an approved admin first.", "error");
+      return;
+    }
+    if (!window.confirm("Sync player photos from the Google Drive links in SPORTS_PLAYERS into the SRGF-Sports GitHub repository? The original Photo links will be preserved.")) return;
+    button.disabled = true;
+    setStatus($("#admin-photo-sync-status"), "Reading Drive photos and syncing them to GitHub… This may take a few minutes.", "info");
+    try {
+      const data = await post({action:"syncplayerphotos"});
+      const summary = data.summary || {};
+      const detail = [
+        (summary.synced || 0) + " uploaded",
+        (summary.unchanged || 0) + " already up to date",
+        (summary.skipped || 0) + " skipped",
+        (summary.errors || []).length + " error(s)"
+      ].join(" · ");
+      const errors = (summary.errors || []).slice(0, 5);
+      setStatus($("#admin-photo-sync-status"), (data.message || "Photo sync completed.") + (errors.length ? " Details: " + errors.join(" | ") : ""), errors.length ? "error" : "success");
+      if (!errors.length) setStatus($("#admin-photo-sync-status"), (data.message || "Photo sync completed.") + " (" + detail + ")", "success");
+      // Reload profiles so Player View immediately starts using the Git-hosted URLs.
+      await loadPlayers();
+      window.dispatchEvent(new CustomEvent("srgf-player-photos-synced"));
+    } catch (err) {
+      setStatus($("#admin-photo-sync-status"), "Photo sync failed: " + (err.message || err), "error");
+    } finally {
+      button.disabled = !idToken;
+    }
+  });
+
   $("#admin-load-sample-data").addEventListener("click", () => {
     runSampleDataAction("loadsampledata", $("#admin-load-sample-data"), "Sample data loaded.");
   });
@@ -353,11 +384,13 @@
       $("#admin-confirm-upload").disabled = true;
       $("#admin-load-sample-data").disabled = true;
       $("#admin-remove-sample-data").disabled = true;
+      $("#admin-sync-player-photos").disabled = true;
       stagedRows = [];
       return;
     }
     $("#admin-load-sample-data").disabled = false;
     $("#admin-remove-sample-data").disabled = false;
+    $("#admin-sync-player-photos").disabled = false;
     $("#admin-save-featured-event").disabled = false;
     try {
       await loadFeaturedEvents();

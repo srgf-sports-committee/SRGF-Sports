@@ -173,6 +173,16 @@
             <span id="admin-featured-status" class="admin-status" role="status" aria-live="polite"></span>
           </div>
         </section>
+        <section class="admin-results-card admin-photo-sync-card" aria-labelledby="admin-photo-sync-title">
+          <div class="admin-card-heading">
+            <div><h3 id="admin-photo-sync-title">Player photo sync</h3><p>Copy photos from the Google Drive links in SPORTS_PLAYERS into this repository so Player View can load them directly from GitHub Pages.</p></div>
+          </div>
+          <div class="admin-sample-actions">
+            <button class="button button-dark" id="admin-sync-player-photos" type="button" disabled>Sync Photos from Drive to Git</button>
+            <span id="admin-photo-sync-status" class="admin-status" role="status" aria-live="polite">Requires a one-time GitHub token setup in Apps Script Script properties.</span>
+          </div>
+          <p class="admin-inline-note">Existing images are checked before upload. The sync writes the public image URL to the separate <strong>Git Photo URL</strong> column; the original <strong>Photo</strong> Drive link is preserved.</p>
+        </section>
         <section class="admin-results-card admin-sample-card" aria-labelledby="admin-sample-title">
           <div class="admin-card-heading">
             <div><h3 id="admin-sample-title">Demo data</h3><p>Load or remove the 20 demo matches using the existing SRGF-Sports backend actions.</p></div>

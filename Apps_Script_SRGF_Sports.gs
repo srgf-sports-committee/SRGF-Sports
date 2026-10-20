@@ -98,19 +98,44 @@ function dateIso_(value) {
 }
 function getPlayers_(ss, includeInactive) {
   const sheet = requireSheet_(ss, "SPORTS_PLAYERS", ["Player ID","Player Name","Active","Created At"]);
-  const {rows} = rowObjects_(sheet);
+  const range = sheet.getDataRange();
+  const display = range.getDisplayValues();
+  const rich = range.getRichTextValues();
+  const headers = (display[0] || []).map(h => text_(h));
+  const column = {};
+  headers.forEach((h, i) => { if (h) column[upper_(h)] = i; });
+  const cell = (row, ...names) => {
+    for (const name of names) {
+      const index = column[upper_(name)];
+      if (index != null && text_(row[index]) !== "") return text_(row[index]);
+    }
+    return "";
+  };
   const byId = {};
-  rows.forEach(p => {
-    const id = upper_(p["Player ID"]);
+  display.slice(1).forEach((row, rowIndex) => {
+    const id = upper_(cell(row, "Player ID"));
     if (!id) return;
-    const activeText = upper_(p.Active);
+    const activeText = upper_(cell(row, "Active"));
     const active = activeText !== "FALSE" && activeText !== "NO" && activeText !== "INACTIVE";
+    const photoIndex = column.PHOTO != null ? column.PHOTO
+      : column.IMAGE != null ? column.IMAGE
+      : column["PLAYER PHOTO"] != null ? column["PLAYER PHOTO"] : null;
+    let photo = photoIndex == null ? "" : text_(row[photoIndex]);
+    // If the cell displays a label (for example, "View photo") instead of its URL,
+    // read the underlying Google Sheets hyperlink target.
+    if (photoIndex != null && (!/^https?:\/\//i.test(photo) || /^(photo|view photo|image)$/i.test(photo))) {
+      try {
+        const richCell = rich[rowIndex + 1][photoIndex];
+        const link = richCell && richCell.getLinkUrl();
+        if (link) photo = link;
+      } catch (_) {}
+    }
     byId[id] = {
-      id, name: text_(p["Player Name"]), active,
-      Gender: text_(p.Gender || p.gender || p.Sex),
-      "Date of Birth": text_(p["Date of Birth"] || p.DOB || p["Birth Date"] || p.Birthdate),
-      Age: text_(p.Age || p.age),
-      Photo: text_(p.Photo || p.photo || p.Image || p.image)
+      id, name: cell(row, "Player Name"), active,
+      Gender: cell(row, "Gender", "Sex"),
+      "Date of Birth": cell(row, "Date of Birth", "DOB", "Birth Date", "Birthdate"),
+      Age: cell(row, "Age"),
+      Photo: photo
     };
   });
   return Object.keys(byId).map(id => byId[id]).filter(p => includeInactive || p.active);

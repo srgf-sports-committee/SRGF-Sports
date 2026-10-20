@@ -535,6 +535,118 @@ function bulkImport_(ss,body) {
   } finally { lock.releaseLock(); }
 }
 
+
+function syncPlayerPhotosToGit_(ss) {
+  const props = PropertiesService.getScriptProperties();
+  const token = text_(props.getProperty("SRGF_GITHUB_TOKEN"));
+  if (!token) throw new Error("GitHub sync is not configured. Add SRGF_GITHUB_TOKEN in Apps Script Project Settings → Script properties. Use a fine-grained token limited to SRGF-Sports with Contents read/write.");
+  const repo = "srgf-sports-committee/SRGF-Sports";
+  const branch = text_(props.getProperty("SRGF_GITHUB_BRANCH")) || "main";
+  const sheet = requireSheet_(ss, "SPORTS_PLAYERS", ["Player ID","Player Name","Active","Created At"]);
+  let values = sheet.getDataRange().getDisplayValues();
+  let rich = sheet.getDataRange().getRichTextValues();
+  let headers = values[0].map(h => text_(h));
+  const col = name => headers.findIndex(h => upper_(h) === upper_(name));
+  const idCol = col("Player ID");
+  let sourceCol = col("Photo");
+  if (sourceCol < 0) sourceCol = col("Image");
+  if (sourceCol < 0) sourceCol = col("Player Photo");
+  if (sourceCol < 0) throw new Error('SPORTS_PLAYERS needs a "Photo" column containing each source Google Drive link.');
+  let gitCol = col("Git Photo URL");
+  if (gitCol < 0) {
+    gitCol = headers.length;
+    sheet.getRange(1, gitCol + 1).setValue("Git Photo URL");
+    headers.push("Git Photo URL");
+    values = sheet.getDataRange().getDisplayValues();
+    rich = sheet.getDataRange().getRichTextValues();
+  }
+  const extractDriveId = value => {
+    const s = text_(value);
+    const match = s.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*?&)?id=)([A-Za-z0-9_-]+)/i) || s.match(/[?&]id=([A-Za-z0-9_-]+)/i);
+    if (match) return match[1];
+    return /^[A-Za-z0-9_-]{15,200}$/.test(s) ? s : "";
+  };
+  const githubRequest = (url, method, payload) => {
+    const options = {
+      method: method,
+      headers: {
+        Authorization: "Bearer " + token,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      },
+      muteHttpExceptions: true
+    };
+    if (payload) {
+      options.contentType = "application/json";
+      options.payload = JSON.stringify(payload);
+    }
+    return UrlFetchApp.fetch(url, options);
+  };
+  const summary = {synced:0, unchanged:0, skipped:0, errors:[]};
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return {ok:true,message:"No player rows found.",summary};
+  if (lastRow - 1 > 250) throw new Error("Safety limit: sync up to 250 player photos per run. Split a larger library into batches.");
+  for (let r = 1; r < values.length; r++) {
+    const row = values[r];
+    const playerId = text_(row[idCol]);
+    if (!playerId) continue;
+    const cell = rich[r] && rich[r][sourceCol];
+    let source = text_(row[sourceCol]);
+    if ((!/^https?:\/\//i.test(source) || /^(photo|view photo|image)$/i.test(source)) && cell) {
+      try { source = text_(cell.getLinkUrl()) || source; } catch (_) {}
+    }
+    const fileId = extractDriveId(source);
+    if (!fileId) {
+      summary.skipped++;
+      if (source) summary.errors.push(playerId + ": Photo cell is not a Google Drive file link.");
+      continue;
+    }
+    try {
+      const file = DriveApp.getFileById(fileId);
+      const blob = file.getBlob();
+      const mime = String(blob.getContentType() || "").toLowerCase();
+      const ext = mime === "image/jpeg" ? "jpg" : mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : mime === "image/gif" ? "gif" : mime === "image/avif" ? "avif" : "";
+      if (!ext) throw new Error("Unsupported photo type " + (mime || "(unknown)") + "; use JPEG, PNG, WEBP, GIF or AVIF.");
+      const safeId = playerId.replace(/[^A-Za-z0-9_-]/g, "_");
+      const path = "assets/player-photos/" + safeId + "." + ext;
+      const apiUrl = "https://api.github.com/repos/" + repo + "/contents/" + path.split("/").map(encodeURIComponent).join("/") + "?ref=" + encodeURIComponent(branch);
+      const imageBase64 = Utilities.base64Encode(blob.getBytes());
+      const existingResponse = githubRequest(apiUrl, "get");
+      let existingSha = "";
+      if (existingResponse.getResponseCode() === 200) {
+        const existing = JSON.parse(existingResponse.getContentText());
+        existingSha = text_(existing.sha);
+        const oldContent = text_(existing.content).replace(/\s/g, "");
+        if (oldContent && oldContent === imageBase64) {
+          const publicUrl = "https://srgf-sports-committee.github.io/SRGF-Sports/" + path;
+          sheet.getRange(r + 1, gitCol + 1).setValue(publicUrl);
+          summary.unchanged++;
+          continue;
+        }
+      } else if (existingResponse.getResponseCode() !== 404) {
+        throw new Error("GitHub check failed (" + existingResponse.getResponseCode() + "): " + existingResponse.getContentText().slice(0, 240));
+      }
+      const payload = {
+        message: "Sync player photo " + playerId + " from Google Drive",
+        content: imageBase64,
+        branch: branch
+      };
+      if (existingSha) payload.sha = existingSha;
+      const upload = githubRequest("https://api.github.com/repos/" + repo + "/contents/" + path.split("/").map(encodeURIComponent).join("/"), "put", payload);
+      if (upload.getResponseCode() < 200 || upload.getResponseCode() >= 300) {
+        throw new Error("GitHub upload failed (" + upload.getResponseCode() + "): " + upload.getContentText().slice(0, 240));
+      }
+      const publicUrl = "https://srgf-sports-committee.github.io/SRGF-Sports/" + path;
+      sheet.getRange(r + 1, gitCol + 1).setValue(publicUrl);
+      summary.synced++;
+    } catch (err) {
+      summary.errors.push(playerId + ": " + String(err.message || err));
+    }
+  }
+  const message = "Photo sync complete: " + summary.synced + " uploaded, " + summary.unchanged + " already up to date, " + summary.skipped + " skipped, " + summary.errors.length + " error(s).";
+  return {ok:true,message,summary};
+}
+
 function doPost(e) {
   try {
     const body=JSON.parse(e && e.postData && e.postData.contents || "{}");
@@ -542,6 +654,7 @@ function doPost(e) {
     const adminEmail=verifySportsAdmin_(body.idToken);
     if(action==="adminauth") return json_({ok:true,authorized:true,role:"ADMIN",email:adminEmail});
     const ss=getDirectory_();
+    if(action==="syncplayerphotos") return json_(syncPlayerPhotosToGit_(ss));
     if(action==="setfeaturedevent") {
       const eventId=text_(body.eventId);
       if(!eventId) throw new Error("Choose an event to feature.");

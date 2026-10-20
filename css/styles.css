@@ -586,3 +586,15 @@ body:has(.hero){background:linear-gradient(180deg,#102f3c 0,#163f4b 430px,#f5f7f
 .player-basic-info-item strong{font-size:12px;line-height:1.3;color:var(--ink);overflow-wrap:anywhere}
 @media(max-width:900px){.player-view-primary-filter{flex-wrap:wrap}.player-view-primary-filter>label{flex:1 1 260px}.player-view-basic-info{flex:1 1 100%}}
 @media(max-width:600px){.player-view-basic-info{align-items:stretch;flex-direction:column;gap:12px;padding:12px}.player-basic-info-heading{max-width:none}.player-basic-info-fields{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:12px}.player-basic-info-item:nth-child(odd){border-left:0;padding-left:0}}
+
+
+/* Player View profile photo, sourced from SPORTS_PLAYERS.Photo. */
+.player-basic-info-heading{display:flex;align-items:center;gap:13px;min-width:0}
+.player-profile-photo-wrap{position:relative;flex:0 0 66px;width:66px;height:66px;border-radius:50%;overflow:hidden;background:linear-gradient(145deg,#d8f6e7,#dce9ff);border:2px solid #fff;box-shadow:0 2px 10px #193b321c;display:grid;place-items:center}
+.player-profile-photo{width:100%;height:100%;object-fit:cover;display:block}
+.player-profile-photo[hidden],.player-basic-avatar[hidden]{display:none!important}
+.player-profile-photo-wrap .player-basic-avatar{width:100%;height:100%;display:grid;place-items:center;border-radius:0;background:transparent;color:#15584b;font-size:21px;font-weight:850}
+.player-basic-info-name{display:flex;flex-direction:column;gap:4px;min-width:0}
+.player-basic-info-name small{font-size:9px;font-weight:850;letter-spacing:.14em;color:var(--forest-2)}
+.player-basic-info-name strong{font-size:17px;line-height:1.25;overflow-wrap:anywhere}
+@media(max-width:600px){.player-profile-photo-wrap{flex-basis:56px;width:56px;height:56px}.player-basic-info-name strong{font-size:15px}}

@@ -642,7 +642,7 @@
     const img = wrap && wrap.querySelector(".player-profile-photo");
     const initials = wrap && wrap.querySelector(".player-basic-avatar");
     if (!img || !initials) return;
-    const raw = String(field(profile, "Photo", "photo", "Image", "image") || "").trim();
+    const raw = String(field(profile, "Git Photo URL", "Photo Git URL", "Photo", "photo", "Image", "image") || "").trim();
     img.hidden = true;
     initials.hidden = false;
     if (!raw) return;

@@ -629,10 +629,59 @@
       ["Best Sports", bestSportsText]
     ];
     container.innerHTML =
-      '<div class="player-basic-info-heading"><span class="player-basic-avatar" aria-hidden="true">♟</span><div><small>PLAYER PROFILE</small><strong>' + escapeHtml(playerName || "Player") + '</strong></div></div>' +
+      '<div class="player-basic-info-heading"><div class="player-profile-photo-wrap"><img class="player-profile-photo" alt="' + escapeHtml(playerName || "Player") + '" hidden><span class="player-basic-avatar" aria-hidden="true">' + escapeHtml(String(playerName || "P").trim().split(/\s+/).slice(0,2).map(part => part[0] || "").join("").toUpperCase() || "P") + '</span></div><div class="player-basic-info-name"><small>PLAYER PROFILE</small><strong>' + escapeHtml(playerName || "Player") + '</strong></div></div>' +
       '<div class="player-basic-info-fields">' + details.map(([label,value]) =>
         '<div class="player-basic-info-item"><span>' + escapeHtml(label) + '</span><strong>' + escapeHtml(value) + '</strong></div>'
       ).join("") + '</div>';
+    loadPlayerViewPhoto(profile, playerId);
+  }
+
+
+  async function loadPlayerViewPhoto(profile, playerId) {
+    const wrap = $("#player-view-basic-info .player-profile-photo-wrap");
+    const img = wrap && wrap.querySelector(".player-profile-photo");
+    const initials = wrap && wrap.querySelector(".player-basic-avatar");
+    if (!img || !initials) return;
+    const raw = String(field(profile, "Photo", "photo", "Image", "image") || "").trim();
+    img.hidden = true;
+    initials.hidden = false;
+    if (!raw) return;
+    const driveIdFrom = value => {
+      const v = String(value || "").trim();
+      if (/^drive:/i.test(v)) return v.slice(v.indexOf(":") + 1).trim();
+      const match = v.match(/drive\.google\.com\/(?:file\/d\/|open\?id=|uc\?(?:[^#]*?&)?id=)([a-zA-Z0-9_-]+)/i) ||
+        v.match(/[?&]id=([a-zA-Z0-9_-]+)/i);
+      return match ? match[1] : "";
+    };
+    const driveId = driveIdFrom(raw);
+    const token = playerId;
+    const showImage = src => new Promise(resolve => {
+      img.onload = () => {
+        if (String($("#player-view-primary").value || "") !== token) return resolve(false);
+        img.hidden = false;
+        initials.hidden = true;
+        resolve(true);
+      };
+      img.onerror = () => resolve(false);
+      img.src = src;
+    });
+    if (/^https?:\/\//i.test(raw) && !/drive\.google\.com/i.test(raw)) {
+      if (await showImage(raw)) return;
+    }
+    if (driveId || !/^https?:\/\//i.test(raw)) {
+      const id = driveId || raw;
+      if (!/^[a-zA-Z0-9_-]{5,200}$/.test(id)) return;
+      try {
+        const response = await fetch(API_URL + "?action=photo&id=" + encodeURIComponent(id), {method:"GET", cache:"no-store"});
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        if (data && data.ok === true && data.base64 && data.mimeType && /^image\//i.test(data.mimeType)) {
+          await showImage("data:" + data.mimeType + ";base64," + data.base64);
+        }
+      } catch (error) {
+        console.warn("SRGF Sports player photo could not be loaded:", error);
+      }
+    }
   }
 
   function renderPlayerViewRatings() {

@@ -1,0 +1,136 @@
+name: Sync SRGF Sports player photos
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-srgf-sports-player-photos
+  cancel-in-progress: false
+
+jobs:
+  sync-player-photos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install image optimization dependency
+        run: python -m pip install --disable-pip-version-check Pillow
+
+      - name: Sync photos from SPORTS_PLAYERS
+        env:
+          API_URL: https://script.google.com/macros/s/AKfycbyLw0Yvg1xwH0JTStGa7buZ2k5AZ0OIigIursW0hOLTUWna3pwXAGga_Z80-5MEx6G5/exec
+        run: |
+          python - <<'PY'
+          import base64, io, json, os, re, urllib.parse, urllib.request
+          from pathlib import Path
+          from PIL import Image, ImageOps
+
+          api = os.environ["API_URL"]
+          photo_dir = Path("assets/player-photos")
+          photo_dir.mkdir(parents=True, exist_ok=True)
+          headers = {"User-Agent": "SRGF-Sports-Player-Photo-Sync"}
+
+          def get_json(url):
+              req = urllib.request.Request(url, headers=headers)
+              with urllib.request.urlopen(req, timeout=45) as response:
+                  return json.loads(response.read().decode("utf-8"))
+
+          def drive_id(value):
+              value = str(value or "").strip()
+              if value.startswith("drive:"):
+                  return value[6:].strip()
+              match = re.search(r"(?:id=|/d/|file/d/)([A-Za-z0-9_-]{15,})", value)
+              if match:
+                  return match.group(1)
+              if re.fullmatch(r"[A-Za-z0-9_-]{15,200}", value):
+                  return value
+              return ""
+
+          def optimize(raw):
+              with Image.open(io.BytesIO(raw)) as opened:
+                  image = ImageOps.exif_transpose(opened)
+                  image.thumbnail((600, 800), Image.Resampling.LANCZOS)
+                  has_alpha = (image.mode in ("RGBA", "LA") or
+                               (image.mode == "P" and "transparency" in image.info))
+                  output = io.BytesIO()
+                  if has_alpha:
+                      image.convert("RGBA").save(output, format="PNG", optimize=True)
+                      return ".png", output.getvalue()
+                  image.convert("RGB").save(output, format="JPEG", quality=85,
+                                             optimize=True, progressive=True)
+                  return ".jpg", output.getvalue()
+
+          payload = get_json(api + "?action=players")
+          if payload.get("ok") is not True:
+              raise RuntimeError("Apps Script did not return ok=true for action=players")
+          players = payload.get("players") or []
+          if not isinstance(players, list):
+              raise RuntimeError("Apps Script players response is not a list")
+
+          changed = 0
+          errors = 0
+          seen = set()
+          for row in players:
+              pid = str(row.get("Player ID") or row.get("id") or "").strip()
+              if not pid:
+                  continue
+              safe_id = re.sub(r"[^A-Za-z0-9_-]", "_", pid)
+              if not safe_id:
+                  continue
+              seen.add(safe_id)
+              source = str(row.get("Photo") or row.get("Image") or row.get("Player Photo") or "").strip()
+              did = drive_id(source)
+              try:
+                  raw = b""
+                  if did:
+                      photo = get_json(api + "?action=photo&id=" + urllib.parse.quote(did))
+                      if photo.get("ok") and photo.get("base64"):
+                          raw = base64.b64decode(photo["base64"])
+                      else:
+                          raise RuntimeError(photo.get("error") or "Photo endpoint returned no image data")
+                  elif source.startswith(("https://", "http://")):
+                      req = urllib.request.Request(source, headers=headers)
+                      with urllib.request.urlopen(req, timeout=45) as response:
+                          raw = response.read()
+                  else:
+                      print("No usable photo link for", pid, "- keeping any existing image")
+                      continue
+
+                  ext, optimized = optimize(raw)
+                  destination = photo_dir / (safe_id + ext)
+                  old_files = list(photo_dir.glob(safe_id + ".*"))
+                  if len(old_files) == 1 and old_files[0] == destination and destination.exists() and destination.read_bytes() == optimized:
+                      print("Unchanged:", pid)
+                      continue
+                  for old in old_files:
+                      if old != destination:
+                          old.unlink()
+                  destination.write_bytes(optimized)
+                  changed += 1
+                  print("Synced:", pid, "->", destination.as_posix(), str(len(optimized)) + " bytes")
+              except Exception as exc:
+                  errors += 1
+                  print("Photo sync failed for", pid, ":", str(exc))
+
+          print("Player rows:", len(players), "| photos changed:", changed, "| photo errors:", errors)
+          if errors:
+              print("Some photos failed; the workflow will still commit successful photos.")
+          PY
+
+      - name: Commit photos when changed
+        run: |
+          git config user.name "SRGF Sports photo sync"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add assets/player-photos
+          if git diff --cached --quiet; then
+            echo "No player photo changes."
+            exit 0
+          fi
+          git commit -m "Auto-sync SRGF Sports player photos"
+          git push

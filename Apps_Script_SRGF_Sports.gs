@@ -135,7 +135,8 @@ function getPlayers_(ss, includeInactive) {
       Gender: cell(row, "Gender", "Sex"),
       "Date of Birth": cell(row, "Date of Birth", "DOB", "Birth Date", "Birthdate"),
       Age: cell(row, "Age"),
-      Photo: photo
+      Photo: photo,
+      "Git Photo URL": cell(row, "Git Photo URL", "Photo Git URL")
     };
   });
   return Object.keys(byId).map(id => byId[id]).filter(p => includeInactive || p.active);
@@ -268,7 +269,7 @@ function doGet(e) {
     if (action === "players") {
       return json_({ok:true,players:getPlayers_(ss,false).map(p=>({
         "Player ID":p.id, "Player Name":p.name, Active:true,
-        Gender:p.Gender, "Date of Birth":p["Date of Birth"], Age:p.Age, Photo:p.Photo
+        Gender:p.Gender, "Date of Birth":p["Date of Birth"], Age:p.Age, Photo:p.Photo, "Git Photo URL":p["Git Photo URL"]
       }))});
     }
     if (action === "photo") {

@@ -1012,7 +1012,7 @@
     XLSX.writeFile(workbook,"SRGF_Player_Rating_History_"+stamp+".xlsx");
   }
   const PLAYER_HISTORY_CACHE_KEY = "srgfSportsPlayerHistoryV1";
-  const PLAYER_HISTORY_REFRESH_MS = 60000;
+  const PLAYER_HISTORY_REFRESH_MS = 30000;
   let playerHistoryLastFetchAt = 0;
   let playerHistoryRequestInFlight = null;
 
@@ -1489,7 +1489,7 @@
   }
 
   const RANKING_CACHE_KEY = "srgfSportsRankingDataV1";
-  const RANKING_REFRESH_MS = 60000;
+  const RANKING_REFRESH_MS = 30000;
   let rankingLastFetchAt = 0;
   let rankingRequestInFlight = null;
 

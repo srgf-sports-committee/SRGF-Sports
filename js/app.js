@@ -638,6 +638,40 @@
   }
 
 
+  function openPlayerPhotoLightbox(src, alt) {
+    let overlay = document.getElementById("player-photo-lightbox");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "player-photo-lightbox";
+      overlay.className = "player-photo-lightbox";
+      overlay.hidden = true;
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.setAttribute("aria-label", "Player photo");
+      overlay.innerHTML =
+        '<button type="button" class="player-photo-lightbox-close" aria-label="Close enlarged photo">×</button>' +
+        '<img class="player-photo-lightbox-image" alt="">';
+      document.body.appendChild(overlay);
+      overlay.addEventListener("click", event => {
+        if (event.target === overlay || event.target.closest(".player-photo-lightbox-close")) {
+          overlay.hidden = true;
+          document.body.classList.remove("player-photo-zoom-open");
+        }
+      });
+      document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && !overlay.hidden) {
+          overlay.hidden = true;
+          document.body.classList.remove("player-photo-zoom-open");
+        }
+      });
+    }
+    const largeImage = overlay.querySelector(".player-photo-lightbox-image");
+    largeImage.src = src;
+    largeImage.alt = alt || "Enlarged player photo";
+    overlay.hidden = false;
+    document.body.classList.add("player-photo-zoom-open");
+  }
+
   async function loadPlayerViewPhoto(profile, playerId) {
     const wrap = $("#player-view-basic-info .player-profile-photo-wrap");
     const img = wrap && wrap.querySelector(".player-profile-photo");
@@ -655,6 +689,21 @@
     };
     const driveId = driveIdFrom(raw);
     const token = playerId;
+    // Make the profile photo keyboard accessible and open the full-size image on click.
+    img.style.cursor = "zoom-in";
+    img.setAttribute("role", "button");
+    img.setAttribute("tabindex", "0");
+    img.setAttribute("aria-label", "Enlarge " + (img.alt || "player photo"));
+    const openZoom = () => {
+      if (!img.hidden && img.src) openPlayerPhotoLightbox(img.src, img.alt);
+    };
+    img.onclick = openZoom;
+    img.onkeydown = event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openZoom();
+      }
+    };
     const showImage = src => new Promise(resolve => {
       img.onload = () => {
         if (String($("#player-view-primary").value || "") !== token) return resolve(false);
@@ -665,16 +714,15 @@
       img.onerror = () => resolve(false);
       img.src = src;
     });
-    // GitHub Actions mirrors Drive photos into this repository every five minutes.
-    // Prefer the fast static copy, trying common optimized formats, before Drive/API fallbacks.
+    // Synced photos are already resized/compressed by GitHub Actions. The sync
+    // writes JPEG for normal photos and PNG only when transparency is required.
+    // Avoid probing four extensions and changing the URL every minute: both
+    // caused needless requests and prevented normal browser caching.
     const safePlayerId = String(playerId || "").trim().replace(/[^A-Za-z0-9_-]/g, "_");
-    // Try the mirrored GitHub asset first. A short cache-buster avoids a previously
-    // cached 404 continuing to hide a photo after the scheduled sync has uploaded it.
     if (safePlayerId) {
       const base = "https://srgf-sports-committee.github.io/SRGF-Sports/assets/player-photos/" + encodeURIComponent(safePlayerId);
-      for (const ext of [".jpg", ".png", ".webp", ".gif"]) {
-        if (await showImage(base + ext + "?v=" + Math.floor(Date.now() / 60000))) return;
-      }
+      if (await showImage(base + ".jpg")) return;
+      if (await showImage(base + ".png")) return;
     }
     // Git Photo URL is populated by the legacy/admin sync path; keep it as a
     // direct fallback before attempting to resolve the original Drive photo.

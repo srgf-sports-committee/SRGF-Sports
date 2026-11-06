@@ -626,6 +626,7 @@
       ["Player ID", playerId],
       ["Gender", gender],
       ["Age", age === null ? "Not provided" : String(age)],
+      ["Flat No", field(profile, "Flat No", "Flat Number", "Flat") || "Not provided"],
       ["Best Sports", bestSportsText]
     ];
     container.innerHTML =

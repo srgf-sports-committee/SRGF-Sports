@@ -690,27 +690,30 @@
       const id = driveId || raw;
       if (!/^[a-zA-Z0-9_-]{5,200}$/.test(id)) return;
 
-      // Try multiple direct-image routes because Google Drive links can point to
-      // preview pages, thumbnail delivery, or a shared image URL.
+      // Git-hosted copies above are always preferred. If no Git copy exists,
+      // resolve the original Google Drive source through Apps Script first; this
+      // also works for Drive files that are not publicly shared.
+      try {
+        const response = await fetch(API_URL + "?action=photo&id=" + encodeURIComponent(id), {method:"GET", cache:"no-store"});
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.ok === true && data.base64 && data.mimeType && /^image\//i.test(data.mimeType)) {
+            if (await showImage("data:" + data.mimeType + ";base64," + data.base64)) return;
+          }
+        }
+      } catch (error) {
+        console.warn("SRGF Sports Drive photo API fallback failed:", error);
+      }
+      // Last resort for publicly shared Drive photos: try Google's image URLs.
       const imageCandidates = [
-        "https://drive.google.com/thumbnail?id=" + encodeURIComponent(id) + "&sz=w400",
+        "https://drive.google.com/thumbnail?id=" + encodeURIComponent(id) + "&sz=w800",
+        "https://drive.google.com/uc?export=download&id=" + encodeURIComponent(id),
         "https://drive.google.com/uc?export=view&id=" + encodeURIComponent(id)
       ];
       for (const candidate of imageCandidates) {
         if (await showImage(candidate)) return;
       }
-      try {
-        const response = await fetch(API_URL + "?action=photo&id=" + encodeURIComponent(id), {method:"GET", cache:"no-store"});
-        if (!response.ok) throw new Error("HTTP " + response.status);
-        const data = await response.json();
-        if (data && data.ok === true && data.base64 && data.mimeType && /^image\//i.test(data.mimeType)) {
-          await showImage("data:" + data.mimeType + ";base64," + data.base64);
-        } else {
-          throw new Error(data && data.error || "Photo endpoint did not return image data.");
-        }
-      } catch (error) {
-        console.warn("SRGF Sports player photo could not be loaded:", error);
-      }
+      console.warn("SRGF Sports player photo unavailable from Git and Google Drive source:", playerId);
     }
   }
 

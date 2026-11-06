@@ -598,3 +598,13 @@ body:has(.hero){background:linear-gradient(180deg,#102f3c 0,#163f4b 430px,#f5f7f
 .player-basic-info-name small{font-size:9px;font-weight:850;letter-spacing:.14em;color:var(--forest-2)}
 .player-basic-info-name strong{font-size:17px;line-height:1.25;overflow-wrap:anywhere}
 @media(max-width:600px){.player-profile-photo-wrap{flex-basis:56px;width:56px;height:56px}.player-basic-info-name strong{font-size:15px}}
+
+
+/* Click-to-zoom viewer for Player View profile photos. */
+.player-profile-photo{cursor:zoom-in}
+.player-photo-lightbox[hidden]{display:none!important}
+.player-photo-lightbox{position:fixed;inset:0;z-index:10050;background:rgba(8,18,14,.88);display:flex;align-items:center;justify-content:center;padding:28px;cursor:zoom-out}
+.player-photo-lightbox-image{display:block;max-width:min(92vw,1000px);max-height:88vh;width:auto;height:auto;object-fit:contain;border-radius:14px;box-shadow:0 24px 80px #0008;cursor:default}
+.player-photo-lightbox-close{position:absolute;top:18px;right:22px;width:44px;height:44px;border:1px solid #ffffff70;border-radius:50%;background:#ffffff18;color:#fff;font-size:32px;line-height:1;cursor:pointer;display:grid;place-items:center}
+body.player-photo-zoom-open{overflow:hidden}
+@media(max-width:600px){.player-photo-lightbox{padding:14px}.player-photo-lightbox-image{max-width:96vw;max-height:84vh}.player-photo-lightbox-close{top:10px;right:10px}}

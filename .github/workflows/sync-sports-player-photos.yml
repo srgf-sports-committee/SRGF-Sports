@@ -89,11 +89,32 @@ jobs:
               try:
                   raw = b""
                   if did:
-                      photo = get_json(api + "?action=photo&id=" + urllib.parse.quote(did))
-                      if photo.get("ok") and photo.get("base64"):
-                          raw = base64.b64decode(photo["base64"])
-                      else:
-                          raise RuntimeError(photo.get("error") or "Photo endpoint returned no image data")
+                      # Apps Script is preferred because it can read private Drive files.
+                      try:
+                          photo = get_json(api + "?action=photo&id=" + urllib.parse.quote(did))
+                          if photo.get("ok") and photo.get("base64"):
+                              raw = base64.b64decode(photo["base64"])
+                      except Exception as source_error:
+                          print("Apps Script photo read failed for", pid, ":", str(source_error))
+                      # If Apps Script cannot read it, try public Google Drive delivery URLs.
+                      if not raw:
+                          for candidate in (
+                              "https://drive.google.com/thumbnail?id=" + urllib.parse.quote(did) + "&sz=w1200",
+                              "https://drive.google.com/uc?export=download&id=" + urllib.parse.quote(did),
+                              "https://drive.google.com/uc?export=view&id=" + urllib.parse.quote(did)
+                          ):
+                              try:
+                                  req = urllib.request.Request(candidate, headers=headers)
+                                  with urllib.request.urlopen(req, timeout=45) as response:
+                                      candidate_raw = response.read()
+                                  with Image.open(io.BytesIO(candidate_raw)) as check:
+                                      check.verify()
+                                  raw = candidate_raw
+                                  break
+                              except Exception:
+                                  continue
+                      if not raw:
+                          raise RuntimeError("Could not read Drive photo through Apps Script or public Drive URLs; check file access.")
                   elif source.startswith(("https://", "http://")):
                       req = urllib.request.Request(source, headers=headers)
                       with urllib.request.urlopen(req, timeout=45) as response:

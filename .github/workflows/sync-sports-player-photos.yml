@@ -84,7 +84,7 @@ jobs:
               if not safe_id:
                   continue
               seen.add(safe_id)
-              source = str(row.get("Photo") or row.get("Image") or row.get("Player Photo") or "").strip()
+              source = str(row.get("Photo") or row.get("Image") or row.get("Player Photo") or row.get("Git Photo URL") or row.get("Photo Git URL") or "").strip()
               did = drive_id(source)
               try:
                   raw = b""

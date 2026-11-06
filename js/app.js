@@ -668,11 +668,19 @@
     // GitHub Actions mirrors Drive photos into this repository every five minutes.
     // Prefer the fast static copy, trying common optimized formats, before Drive/API fallbacks.
     const safePlayerId = String(playerId || "").trim().replace(/[^A-Za-z0-9_-]/g, "_");
+    // Try the mirrored GitHub asset first. A short cache-buster avoids a previously
+    // cached 404 continuing to hide a photo after the scheduled sync has uploaded it.
     if (safePlayerId) {
       const base = "https://srgf-sports-committee.github.io/SRGF-Sports/assets/player-photos/" + encodeURIComponent(safePlayerId);
-      for (const ext of [".jpg", ".png"]) {
-        if (await showImage(base + ext)) return;
+      for (const ext of [".jpg", ".png", ".webp", ".gif"]) {
+        if (await showImage(base + ext + "?v=" + Math.floor(Date.now() / 60000))) return;
       }
+    }
+    // Git Photo URL is populated by the legacy/admin sync path; keep it as a
+    // direct fallback before attempting to resolve the original Drive photo.
+    const gitPhotoUrl = String(field(profile, "Git Photo URL", "Photo Git URL") || "").trim();
+    if (gitPhotoUrl && /^https?:\/\//i.test(gitPhotoUrl) && !/drive\.google\.com/i.test(gitPhotoUrl)) {
+      if (await showImage(gitPhotoUrl + (gitPhotoUrl.includes("?") ? "&" : "?") + "v=" + Math.floor(Date.now() / 60000))) return;
     }
     if (!raw) return;
     if (/^https?:\/\//i.test(raw) && !/drive\.google\.com/i.test(raw)) {

@@ -1011,26 +1011,61 @@
     const stamp=new Date().toISOString().slice(0,10);
     XLSX.writeFile(workbook,"SRGF_Player_Rating_History_"+stamp+".xlsx");
   }
-  async function loadPlayerViewHistory() {
+  const PLAYER_HISTORY_CACHE_KEY = "srgfSportsPlayerHistoryV1";
+  const PLAYER_HISTORY_REFRESH_MS = 60000;
+  let playerHistoryLastFetchAt = 0;
+  let playerHistoryRequestInFlight = null;
+
+  async function loadPlayerViewHistory(force = false) {
     const status = $("#player-view-chart-status");
-    if (status) status.textContent = "Loading rating history…";
-    try {
-      const response = await fetch(API_URL + "?action=ratinghistory", {method:"GET",cache:"no-store"});
-      if (!response.ok) throw new Error("HTTP " + response.status);
-      const data = await response.json();
-      if (!data || data.ok !== true || !Array.isArray(data.history)) throw new Error(data && data.error || "Unexpected rating history response.");
-      playerViewHistory = data.history;
-      populatePlayerViewFilters();
-      renderPlayerViewRatings();
-      renderPlayerViewChart();
-    } catch (error) {
-      if (status) status.textContent = "Rating history could not be loaded. Confirm the SRGF Sports Apps Script has the ratinghistory read endpoint deployed.";
-      console.error("SRGF Sports player view history:", error);
+    const now = Date.now();
+    if (playerHistoryRequestInFlight) return playerHistoryRequestInFlight;
+    if (!playerViewHistory.length) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(PLAYER_HISTORY_CACHE_KEY) || "null");
+        if (saved && Array.isArray(saved.history)) {
+          playerViewHistory = saved.history;
+          playerHistoryLastFetchAt = Number(saved.savedAt) || 0;
+          populatePlayerViewFilters();
+          renderPlayerViewRatings();
+          renderPlayerViewChart();
+        }
+      } catch (_) {}
     }
+    if (!force && playerViewHistory.length && now - playerHistoryLastFetchAt < PLAYER_HISTORY_REFRESH_MS) {
+      if (status) status.textContent = "Rating history loaded.";
+      return;
+    }
+    if (status && !playerViewHistory.length) status.textContent = "Loading rating history…";
+    playerHistoryRequestInFlight = (async () => {
+      try {
+        const response = await fetch(API_URL + "?action=ratinghistory", {method:"GET",cache:"no-store"});
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const data = await response.json();
+        if (!data || data.ok !== true || !Array.isArray(data.history)) throw new Error(data && data.error || "Unexpected rating history response.");
+        playerViewHistory = data.history;
+        playerHistoryLastFetchAt = Date.now();
+        try {
+          localStorage.setItem(PLAYER_HISTORY_CACHE_KEY, JSON.stringify({savedAt:playerHistoryLastFetchAt,history:playerViewHistory}));
+        } catch (_) {}
+        populatePlayerViewFilters();
+        renderPlayerViewRatings();
+        renderPlayerViewChart();
+        if (status) status.textContent = "Rating history refreshed.";
+      } catch (error) {
+        if (status) status.textContent = playerViewHistory.length
+          ? "Showing saved rating history. Refresh failed; try again later."
+          : "Rating history could not be loaded. Confirm the SRGF Sports Apps Script has the ratinghistory read endpoint deployed.";
+        console.error("SRGF Sports player view history:", error);
+      } finally {
+        playerHistoryRequestInFlight = null;
+      }
+    })();
+    return playerHistoryRequestInFlight;
   }
 
   function refreshPlayerView() {
-    loadRankings().then(loadPlayerViewHistory);
+    loadRankings(true).then(() => loadPlayerViewHistory(true));
   }
 
   $("#player-view-primary").addEventListener("change", () => {
@@ -1453,51 +1488,98 @@
     });
   }
 
-  async function loadRankings() {
-    const status = $("#ranking-status");
-    status.textContent = "Loading sports rankings…";
-    try {
-      const response = await fetch(API_URL + "?action=rankings", {method:"GET", cache:"no-store"});
-      if (!response.ok) throw new Error("HTTP " + response.status);
-      const data = await response.json();
-      if (!data || data.ok !== true || !Array.isArray(data.sports)) throw new Error(data && data.error || "Ranking response is not configured yet.");
-      rankingSports = data.sports;
-      const pageParams = new URLSearchParams(window.location.search);
-      const requestedSport = String(pageParams.get("sport") || "").trim().toUpperCase();
-      if (requestedSport === "ALL") activeRankingSheet = "__ALL__";
-      else if (requestedSport === "SUMMARY") activeRankingSheet = "__SUMMARY__";
-      else if (requestedSport) {
-        const matchingSport = rankingSports.find(s => {
-          const code = String(s.code || "").trim().toUpperCase();
-          const sheet = String(s.sheetName || "").replace(/-Rating$/i, "").trim().toUpperCase();
-          const name = String(s.name || "").trim().toUpperCase();
-          const aliases = {BAD:"BAD", BADMINTON:"BAD", TT:"TT", "TABLE TENNIS":"TT", PB:"PB", PICKLEBALL:"PB", LT:"LT", "LAWN TENNIS":"LT"};
-          return [code, sheet, name, aliases[code], aliases[sheet], aliases[name]].includes(requestedSport);
-        });
-        if (matchingSport) activeRankingSheet = String(matchingSport.sheetName || matchingSport.name);
-      }
-      // Do not reactivate the Rankings tab from inside a data load; that caused repeated reloads.
-      try {
-        const playersResponse = await fetch(API_URL + "?action=players", {method:"GET", cache:"no-store"});
-        const playersData = await playersResponse.json();
-        if (playersResponse.ok && playersData && playersData.ok === true && Array.isArray(playersData.players)) {
-          playerProfiles = new Map(playersData.players.map(p => [String(p["Player ID"] || "").trim().toUpperCase(), p]));
-        }
-      } catch (profileError) {
-        console.warn("SRGF Sports player category details could not be loaded:", profileError);
-      }
-      if (activeRankingSheet !== "__ALL__" && activeRankingSheet !== "__SUMMARY__" && !rankingSports.some(s => String(s.sheetName || s.name) === activeRankingSheet)) {
-        activeRankingSheet = "__ALL__";
-      }
-      renderRankings();
-      renderInsights();
-      status.textContent = "Rankings refreshed.";
-    } catch (error) {
-      status.textContent = "Rankings could not be loaded. The SRGF Sports Apps Script needs the rankings read endpoint.";
-      console.error("SRGF Sports rankings:", error);
-      renderRankings();
-      renderInsights();
+  const RANKING_CACHE_KEY = "srgfSportsRankingDataV1";
+  const RANKING_REFRESH_MS = 60000;
+  let rankingLastFetchAt = 0;
+  let rankingRequestInFlight = null;
+
+  function applyRankingData(sports, players) {
+    rankingSports = sports;
+    if (Array.isArray(players)) {
+      playerProfiles = new Map(players.map(p => [String(p["Player ID"] || "").trim().toUpperCase(), p]));
     }
+    const pageParams = new URLSearchParams(window.location.search);
+    const requestedSport = String(pageParams.get("sport") || "").trim().toUpperCase();
+    if (requestedSport === "ALL") activeRankingSheet = "__ALL__";
+    else if (requestedSport === "SUMMARY") activeRankingSheet = "__SUMMARY__";
+    else if (requestedSport) {
+      const matchingSport = rankingSports.find(s => {
+        const code = String(s.code || "").trim().toUpperCase();
+        const sheet = String(s.sheetName || "").replace(/-Rating$/i, "").trim().toUpperCase();
+        const name = String(s.name || "").trim().toUpperCase();
+        const aliases = {BAD:"BAD", BADMINTON:"BAD", TT:"TT", "TABLE TENNIS":"TT", PB:"PB", PICKLEBALL:"PB", LT:"LT", "LAWN TENNIS":"LT"};
+        return [code, sheet, name, aliases[code], aliases[sheet], aliases[name]].includes(requestedSport);
+      });
+      if (matchingSport) activeRankingSheet = String(matchingSport.sheetName || matchingSport.name);
+    }
+    if (activeRankingSheet !== "__ALL__" && activeRankingSheet !== "__SUMMARY__" && !rankingSports.some(s => String(s.sheetName || s.name) === activeRankingSheet)) {
+      activeRankingSheet = "__ALL__";
+    }
+    renderRankings();
+    renderInsights();
+  }
+
+  async function loadRankings(force = false) {
+    const status = $("#ranking-status");
+    const now = Date.now();
+    if (rankingRequestInFlight) return rankingRequestInFlight;
+
+    // Paint saved rankings immediately; only contact Apps Script when the cache is stale.
+    if (!rankingSports.length) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(RANKING_CACHE_KEY) || "null");
+        if (saved && Array.isArray(saved.sports)) {
+          applyRankingData(saved.sports, Array.isArray(saved.players) ? saved.players : []);
+          rankingLastFetchAt = Number(saved.savedAt) || 0;
+        }
+      } catch (_) {}
+    }
+    if (!force && rankingSports.length && now - rankingLastFetchAt < RANKING_REFRESH_MS) {
+      if (status) status.textContent = "Rankings loaded.";
+      return;
+    }
+    if (status && !rankingSports.length) status.textContent = "Loading sports rankings…";
+
+    rankingRequestInFlight = (async () => {
+      try {
+        // These endpoints are independent, so fetch them together instead of waiting sequentially.
+        const [rankingResponse, playersResponse] = await Promise.all([
+          fetch(API_URL + "?action=rankings", {method:"GET", cache:"no-store"}),
+          fetch(API_URL + "?action=players", {method:"GET", cache:"no-store"})
+        ]);
+        if (!rankingResponse.ok) throw new Error("Rankings HTTP " + rankingResponse.status);
+        const data = await rankingResponse.json();
+        if (!data || data.ok !== true || !Array.isArray(data.sports)) throw new Error(data && data.error || "Ranking response is not configured yet.");
+        let players = [];
+        try {
+          if (playersResponse.ok) {
+            const playersData = await playersResponse.json();
+            if (playersData && playersData.ok === true && Array.isArray(playersData.players)) players = playersData.players;
+          }
+        } catch (profileError) {
+          console.warn("SRGF Sports player category details could not be loaded:", profileError);
+        }
+        applyRankingData(data.sports, players);
+        rankingLastFetchAt = Date.now();
+        try {
+          localStorage.setItem(RANKING_CACHE_KEY, JSON.stringify({
+            savedAt: rankingLastFetchAt,
+            sports: rankingSports,
+            players
+          }));
+        } catch (_) { /* Saved data is an optimization; live rankings remain available. */ }
+        if (status) status.textContent = "Rankings refreshed.";
+      } catch (error) {
+        if (status) status.textContent = rankingSports.length
+          ? "Showing saved rankings. Refresh failed; try again later."
+          : "Rankings could not be loaded. The SRGF Sports Apps Script needs the rankings read endpoint.";
+        console.error("SRGF Sports rankings:", error);
+        if (!rankingSports.length) { renderRankings(); renderInsights(); }
+      } finally {
+        rankingRequestInFlight = null;
+      }
+    })();
+    return rankingRequestInFlight;
   }
 
   async function saveRankingChanges() {
@@ -1526,7 +1608,7 @@
       const data = await response.json();
       if (!response.ok || !data || data.ok !== true) throw new Error(data && data.error || "Unable to save rankings.");
       rankingEditMode = false;
-      await loadRankings();
+      await loadRankings(true);
       $("#ranking-status").textContent = "Rankings saved successfully.";
     } catch (error) {
       $("#ranking-status").textContent = "Save failed. The SRGF Sports Apps Script needs the protected ranking-save endpoint.";

@@ -196,7 +196,7 @@
         <div class="admin-results-grid">
           <section class="admin-results-card">
             <div class="admin-card-heading"><div><h3 id="admin-match-form-title">Add a match result</h3><p>Player IDs must already exist and be active in SPORTS_PLAYERS.</p></div><button class="refresh-button" id="admin-new-match" type="button">＋ New</button></div>
-            <p class="admin-inline-note">To edit a result, select <strong>Edit</strong> beside a match in the history below. Elo is calculated only from the selected match result. Scores are not recorded.</p>
+            <p class="admin-inline-note">To edit a result, select <strong>Edit</strong> beside a match in the history below. Saving a completed match automatically recalculates that sport from its full match history. Scores are not recorded.</p>
             <form id="admin-match-form">
               <div class="admin-form-grid">
                 <label>Sport<select id="admin-sport" required><option value="TT">Table Tennis (TT)</option><option value="PB">Pickleball (PB)</option><option value="BAD">Badminton (Bad)</option><option value="LT">Lawn Tennis (LT)</option></select></label>
@@ -223,7 +223,8 @@
           </section>
         </div>
         <section class="admin-results-card admin-history-card">
-          <div class="admin-card-heading"><div><h3>Match history</h3><p>Review existing results and choose a match to edit.</p></div><div class="admin-history-controls"><label>Sport<select id="admin-history-sport"><option value="ALL">All sports</option><option value="TT">Table Tennis</option><option value="PB">Pickleball</option><option value="BAD">Badminton</option><option value="LT">Lawn Tennis</option></select></label><button class="refresh-button" id="admin-refresh-matches" type="button">↻ Refresh</button></div></div>
+          <div class="admin-card-heading"><div><h3>Match history</h3><p>Review existing results and choose a match to edit.</p></div><div class="admin-history-controls"><label>Sport<select id="admin-history-sport"><option value="ALL">All sports</option><option value="TT">Table Tennis</option><option value="PB">Pickleball</option><option value="BAD">Badminton</option><option value="LT">Lawn Tennis</option></select></label><button class="refresh-button" id="admin-recalculate-ratings" type="button" disabled>Recalculate all ratings</button><button class="refresh-button" id="admin-refresh-matches" type="button">↻ Refresh</button></div></div>
+          <p id="admin-recalculate-status" class="admin-status" role="status" aria-live="polite">Completed match saves and Excel imports recalculate the affected sport automatically. Use the button to rebuild all four sports from match history.</p>
           <div id="admin-match-history" class="admin-match-history"><div class="loading-state">Sign in to load match history.</div></div>
         </section>
       </section>

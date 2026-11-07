@@ -174,6 +174,32 @@
     }
   });
 
+  $("#admin-recalculate-ratings").addEventListener("click", async () => {
+    const button = $("#admin-recalculate-ratings");
+    if (!idToken) {
+      setStatus($("#admin-recalculate-status"), "Sign in as an approved administrator first.", "error");
+      return;
+    }
+    if (!window.confirm("Recalculate Singles and Doubles ratings for all four sports from every Completed match in the Match sheets? This will rebuild all four Rating and RatingHistory sheets.")) return;
+    button.disabled = true;
+    button.textContent = "Recalculating…";
+    setStatus($("#admin-recalculate-status"), "Replaying all completed matches for TT, Pickleball, Badminton and Lawn Tennis…", "info");
+    try {
+      const data = await post({action:"recalculateallrankings"});
+      const summaries = (data.results || []).map(result =>
+        result.sport + ": " + result.completedMatches + " completed matches, " + result.players + " players"
+      );
+      setStatus($("#admin-recalculate-status"),
+        (data.message || "All ratings recalculated.") + (summaries.length ? " " + summaries.join(" · ") : ""),
+        "success"
+      );
+    } catch (err) {
+      setStatus($("#admin-recalculate-status"), "Full recalculation failed: " + err.message, "error");
+    } finally {
+      button.disabled = !idToken;
+      button.textContent = "Recalculate all ratings";
+    }
+  });
   $("#admin-refresh-matches").addEventListener("click", async () => {
     try { await loadMatches(); setStatus($("#admin-entry-status"), "Match history refreshed.", "success"); }
     catch (e) { setStatus($("#admin-entry-status"), e.message, "error"); }
@@ -404,12 +430,14 @@
       $("#admin-load-sample-data").disabled = true;
       $("#admin-remove-sample-data").disabled = true;
       $("#admin-sync-player-photos").disabled = true;
+      $("#admin-recalculate-ratings").disabled = true;
       stagedRows = [];
       return;
     }
     $("#admin-load-sample-data").disabled = false;
     $("#admin-remove-sample-data").disabled = false;
     $("#admin-sync-player-photos").disabled = false;
+    $("#admin-recalculate-ratings").disabled = false;
     $("#admin-save-featured-event").disabled = false;
     try {
       await loadFeaturedEvents();

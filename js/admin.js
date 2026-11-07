@@ -359,11 +359,20 @@
 
   $("#admin-download-template").addEventListener("click", () => {
     const wb = XLSX.utils.book_new();
-    const results = XLSX.utils.aoa_to_sheet([["Match ID","Match Date","Sport","Format","Player 1 ID","Player 2 ID","Player 3 ID","Player 4 ID","Score 1","Score 2","Result","Status","Notes"]]);
+    const headers = ["Match ID","Match Date","Sport","Format","Player 1 ID","Player 2 ID","Player 3 ID","Player 4 ID","Score 1","Score 2","Result","Status","Notes"];
+    const results = XLSX.utils.aoa_to_sheet([headers]);
     XLSX.utils.book_append_sheet(wb,results,"Results");
+    // Keep the illustrative row on a separate sheet so it is never parsed
+    // as an upload row when the user selects this workbook.
+    const example = XLSX.utils.aoa_to_sheet([
+      headers,
+      ["EXAMPLE-001","2026-11-01","TT","Singles","SRGF0001","SRGF0002","","","","","Side 1 Win","Completed","Example only - replace with your actual match and active Player IDs"]
+    ]);
+    XLSX.utils.book_append_sheet(wb,example,"Example Data");
     const guide = XLSX.utils.aoa_to_sheet([
       ["SRGF Sports bulk match upload instructions"],
-      ["Use one row per match in the Results sheet."],
+      ["Enter your real match rows in the Results sheet. The upload reads the first (Results) sheet only."],
+      ["See the Example Data sheet for one illustrative completed singles match. Copy the example row into Results only after replacing the sample Match ID, date and Player IDs with real values."],
       ["Match ID is required and must be unique within the uploaded file. Existing Match IDs update matching records; new IDs create matches."],
       ["Sport values: TT, PB, Bad or LT. Format values: Singles or Doubles."],
       ["Player 1 ID and Player 2 ID are required. Doubles also requires Player 3 ID and Player 4 ID."],

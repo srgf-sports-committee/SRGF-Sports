@@ -1455,7 +1455,12 @@
         '<div class="sport-leader-footer">Top ' + Math.min(5,rows.length) + ' ' + escapeHtml(categoryLabel) + ' players by ' + escapeHtml(format) + ' Elo</div></article>';
     });
     const players = Array.from(playerMap.values()).map(p=>({...p,average:p.sports.length?p.eloTotal/p.sports.length:0})).sort((a,b)=>b.average-a.average || b.sports.length-a.sports.length || a.name.localeCompare(b.name));
-    const totalPlayers = playerMap.size;
+    // Home's player count should represent the active SPORTS_PLAYERS directory,
+    // including registered players who have not appeared in a rating sheet yet.
+    // Fall back to the unique rating rows only when the player directory is unavailable.
+    const totalPlayers = playerProfiles.size
+      ? Array.from(playerProfiles.keys()).filter(id => playerMatchesCategory(id, gender, ageBands)).length
+      : playerMap.size;
     const totalMatches = Math.round(matchAppearances / (format === "Doubles" ? 4 : 2));
     const sportHighlights = rankingSports.map((sport, sportIndex) => {
       const label = sport.name || String(sport.sheetName || "").replace(/-Rating$/i,"");

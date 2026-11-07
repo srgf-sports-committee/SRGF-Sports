@@ -45,12 +45,26 @@
     return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
   }
   function playerOptions() {
-    const html = '<option value="">Select Player ID…</option>' + players.map(p => {
-      const id = p["Player ID"] || p.playerId || p.ID || "";
-      const name = p["Player Name"] || p["Name"] || p.name || "";
-      return '<option value="' + esc(id) + '">' + esc(id + (name ? " — " + name : "")) + '</option>';
-    }).join("");
-    ["#admin-p1","#admin-p2","#admin-p3","#admin-p4"].forEach(sel => { if ($(sel)) $(sel).innerHTML = html; });
+    const selectors = ["#admin-p1","#admin-p2","#admin-p3","#admin-p4"];
+    const isDoubles = $("#admin-format").value === "Doubles";
+    const activeSelectors = isDoubles ? selectors : selectors.slice(0, 2);
+    const selected = Object.fromEntries(selectors.map(sel => [sel, $(sel)?.value || ""]));
+    selectors.forEach(sel => {
+      const select = $(sel);
+      if (!select) return;
+      const unavailable = new Set(activeSelectors.filter(other => other !== sel).map(other => selected[other]).filter(Boolean));
+      const options = players
+        .map(p => {
+          const id = String(p["Player ID"] || p.playerId || p.ID || "").trim();
+          const name = p["Player Name"] || p["Name"] || p.name || "";
+          return {id, name};
+        })
+        .filter(p => p.id && (!unavailable.has(p.id) || p.id === selected[sel]));
+      select.innerHTML = '<option value="">Select Player ID…</option>' + options.map(p =>
+        '<option value="' + esc(p.id) + '">' + esc(p.id + (p.name ? " — " + p.name : "")) + '</option>'
+      ).join("");
+      select.value = selected[sel];
+    });
   }
   async function loadFeaturedEvents() {
     const select = $("#admin-featured-event");
@@ -86,6 +100,11 @@
     $("#admin-p4-wrap").classList.toggle("admin-field-hidden", !isDoubles);
     $("#admin-p3").required = isDoubles;
     $("#admin-p4").required = isDoubles;
+    if (!isDoubles) {
+      $("#admin-p3").value = "";
+      $("#admin-p4").value = "";
+    }
+    playerOptions();
   }
   function clearForm() {
     editingMatch = false;
@@ -353,6 +372,11 @@
       removeButton.disabled = !signedIn;
     }
   }
+  ["#admin-p1","#admin-p2","#admin-p3","#admin-p4"].forEach(sel => {
+    $(sel).addEventListener("change", playerOptions);
+  });
+  $("#admin-format").addEventListener("change", toggleDoubles);
+
   $("#admin-sync-player-photos").addEventListener("click", async () => {
     const button = $("#admin-sync-player-photos");
     if (!idToken) {

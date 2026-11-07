@@ -710,10 +710,29 @@ function doPost(e) {
     if(action==="loadsampledata") return json_(loadSampleData_(ss));
     if(action==="removesampledata") return json_(removeSampleData_(ss));
     if(action==="bulkimport" || action==="bulkresults") return json_(bulkImport_(ss,body));
+    if(action==="recalculateallrankings") {
+      // Full rebuild is an explicit admin action. Serialize it with match
+      // saves/imports so no result is written midway through a replay.
+      const lock=LockService.getScriptLock();
+      lock.waitLock(30000);
+      try {
+        const results=[];
+        Object.keys(SPORT_MAP_).forEach(code => results.push(replaySport_(ss,SPORT_MAP_[code])));
+        return json_({
+          ok:true,
+          message:"All sports ratings and rating histories were recalculated from the completed match records.",
+          results
+        });
+      } finally { lock.releaseLock(); }
+    }
     if(action==="recalculaterankings") {
       const sport=sportInfo_(body.sport);
-      const result=replaySport_(ss,sport);
-      return json_({ok:true,message:"Ratings and history recalculated.",result});
+      const lock=LockService.getScriptLock();
+      lock.waitLock(30000);
+      try {
+        const result=replaySport_(ss,sport);
+        return json_({ok:true,message:"Ratings and history recalculated.",result});
+      } finally { lock.releaseLock(); }
     }
     if(action==="saverankings") {
       // The old homepage ranking editor is retained for non-system custom tabs only.

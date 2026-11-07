@@ -81,6 +81,7 @@
   }
   function toggleDoubles() {
     const isDoubles = $("#admin-format").value === "Doubles";
+    $("#admin-p2-label").textContent = isDoubles ? "Side 1 — Player 2 ID" : "Side 2 — Player 1 ID";
     $("#admin-p3-wrap").classList.toggle("admin-field-hidden", !isDoubles);
     $("#admin-p4-wrap").classList.toggle("admin-field-hidden", !isDoubles);
     $("#admin-p3").required = isDoubles;

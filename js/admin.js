@@ -383,13 +383,14 @@
     // as an upload row when the user selects this workbook.
     const example = XLSX.utils.aoa_to_sheet([
       headers,
-      ["EXAMPLE-001","2026-11-01","TT","Singles","SRGF0001","","SRGF0002","","","","Side 1 Win","Completed","Example only - replace with your actual match and active Player IDs"]
+      ["EXAMPLE-S-001","2026-11-01","TT","Singles","SRGF0001","","SRGF0002","","","","Side 1 Win","Completed","SINGLES example: Player 1 vs Player 3. Replace with real match details and active Player IDs"],
+      ["EXAMPLE-D-001","2026-11-02","TT","Doubles","SRGF0001","SRGF0002","SRGF0003","SRGF0004","","","Side 2 Win","Completed","DOUBLES example: Side 1 = Players 1+2; Side 2 = Players 3+4. Replace with real match details and active Player IDs"]
     ]);
     XLSX.utils.book_append_sheet(wb,example,"Example Data");
     const guide = XLSX.utils.aoa_to_sheet([
       ["SRGF Sports bulk match upload instructions"],
       ["Enter your real match rows in the Results sheet. The upload reads the first (Results) sheet only."],
-      ["See the Example Data sheet for one illustrative completed singles match. Copy the example row into Results only after replacing the sample Match ID, date and Player IDs with real values."],
+      ["See the Example Data sheet for one completed Singles example and one completed Doubles example. Copy only the relevant example row(s) into Results after replacing the sample Match IDs, dates and Player IDs with real values."],
       ["Match ID is required and must be unique within the uploaded file. Existing Match IDs update matching records; new IDs create matches."],
       ["Sport values: TT, PB, Bad or LT. Format values: Singles or Doubles."],
       ["Singles: enter the two opponents in Player 1 ID and Player 3 ID; leave Player 2 ID and Player 4 ID blank."],

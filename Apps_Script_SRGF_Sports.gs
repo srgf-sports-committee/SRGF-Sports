@@ -25,7 +25,7 @@ const MATCH_HEADERS_ = [
   "Match ID", "Match Date", "Format",
   "Player 1 ID", "Player 1 Name", "Player 2 ID", "Player 2 Name",
   "Player 3 ID", "Player 3 Name", "Player 4 ID", "Player 4 Name",
-  "Score 1", "Score 2", "Result", "Status", "Notes", "Created At", "Updated At"
+  "Result", "Status", "Notes", "Created At", "Updated At"
 ];
 const RATING_HEADERS_ = [
   "Player ID", "Player Name",
@@ -194,13 +194,8 @@ function normalStatus_(value) {
   if (s === "PENDING" || s === "SCHEDULED") return "Pending";
   throw new Error('Status must be "Completed" or "Pending".');
 }
-function normalResult_(value, score1, score2, status) {
-  let r = text_(value);
-  if (!r && score1 !== "" && score2 !== "" && status === "Completed") {
-    const a = Number(score1), b = Number(score2);
-    if (!Number.isFinite(a) || !Number.isFinite(b)) throw new Error("Scores must be numeric.");
-    r = a > b ? "Side 1 Win" : a < b ? "Side 2 Win" : "Draw";
-  }
+function normalResult_(value, status) {
+  const r = text_(value);
   const k = upper_(r).replace(/[^A-Z0-9]/g, "");
   if (!r && status === "Pending") return "";
   if (["SIDE1WIN","PLAYER1WIN","TEAM1WIN","1"].includes(k)) return "Side 1 Win";
@@ -227,18 +222,13 @@ function normaliseMatch_(ss, sport, input, players, existing) {
   }
   const ids = [p1.id,p2.id].concat(format === "Doubles" ? [p3.id,p4.id] : []);
   if (new Set(ids).size !== ids.length) throw new Error("The same player cannot appear twice in one match.");
-  const score1 = text_(m["Score 1"] != null ? m["Score 1"] : m.score1);
-  const score2 = text_(m["Score 2"] != null ? m["Score 2"] : m.score2);
-  if ((score1 !== "" && !Number.isFinite(Number(score1))) || (score2 !== "" && !Number.isFinite(Number(score2)))) {
-    throw new Error("Scores must be numeric.");
-  }
-  const result = normalResult_(m.Result || m.result, score1, score2, status);
+  const result = normalResult_(m.Result || m.result, status);
   if (status === "Completed" && !result) throw new Error("Completed matches require a result.");
   return [
     id, date, format,
     p1.id,p1.name,p2.id,p2.name,
     p3 ? p3.id : "",p3 ? p3.name : "",p4 ? p4.id : "",p4 ? p4.name : "",
-    score1,score2,result,status,text_(m.Notes || m.notes || (existing && existing.Notes) || ""),
+    result,status,text_(m.Notes || m.notes || (existing && existing.Notes) || ""),
     (existing && existing["Created At"]) || new Date(), new Date()
   ];
 }
@@ -432,7 +422,7 @@ function replaySport_(ss,sport) {
     const avg1=team1.reduce((s,id)=>s+state[id][format].elo,0)/team1.length;
     const avg2=team2.reduce((s,id)=>s+state[id][format].elo,0)/team2.length;
     const expected1=eloExpected_(avg1,avg2);
-    const result=normalResult_(match.Result,match["Score 1"],match["Score 2"],"Completed");
+    const result=normalResult_(match.Result,"Completed");
     const actual1=result==="Side 1 Win"?1:result==="Side 2 Win"?0:0.5;
     const actual2=1-actual1;
     // K is calculated individually: 40 for each player's first 10 completed
@@ -802,26 +792,26 @@ function loadSampleData_(ss) {
   });
 
   const matchData = [
-    {sport:"TT",date:"2026-10-01",format:"Singles",p1:1,p2:2,s1:11,s2:7,result:"Side 1 Win",note:"Sample TT singles win"},
-    {sport:"TT",date:"2026-10-02",format:"Singles",p1:3,p2:4,s1:8,s2:11,result:"Side 2 Win",note:"Sample TT singles win for side 2"},
-    {sport:"TT",date:"2026-10-03",format:"Doubles",p1:1,p2:5,p3:2,p4:6,s1:21,s2:18,result:"Side 1 Win",note:"Sample TT doubles"},
-    {sport:"TT",date:"2026-10-04",format:"Singles",p1:9,p2:11,s1:10,s2:10,result:"Draw",note:"Sample TT draw"},
-    {sport:"TT",date:"2026-10-05",format:"Doubles",p1:3,p2:8,p3:4,p4:9,s1:16,s2:21,result:"Side 2 Win",note:"Sample TT doubles loss"},
-    {sport:"TT",date:"2026-10-06",format:"Singles",p1:1,p2:9,s1:11,s2:9,result:"Side 1 Win",note:"Sample TT singles"},
-    {sport:"PB",date:"2026-10-01",format:"Singles",p1:2,p2:3,s1:15,s2:11,result:"Side 1 Win",note:"Sample pickleball singles"},
-    {sport:"PB",date:"2026-10-02",format:"Doubles",p1:1,p2:4,p3:6,p4:7,s1:21,s2:19,result:"Side 1 Win",note:"Sample pickleball doubles"},
-    {sport:"PB",date:"2026-10-03",format:"Singles",p1:7,p2:10,s1:8,s2:11,result:"Side 2 Win",note:"Sample pickleball singles"},
-    {sport:"PB",date:"2026-10-04",format:"Doubles",p1:2,p2:12,p3:3,p4:9,s1:20,s2:20,result:"Draw",note:"Sample pickleball doubles draw"},
-    {sport:"PB",date:"2026-10-05",format:"Singles",p1:6,p2:12,s1:11,s2:6,result:"Side 1 Win",note:"Sample pickleball singles"},
-    {sport:"BAD",date:"2026-10-01",format:"Singles",p1:1,p2:3,s1:21,s2:17,result:"Side 1 Win",note:"Sample badminton singles"},
-    {sport:"BAD",date:"2026-10-02",format:"Doubles",p1:2,p2:4,p3:9,p4:10,s1:18,s2:21,result:"Side 2 Win",note:"Sample badminton doubles"},
-    {sport:"BAD",date:"2026-10-03",format:"Singles",p1:8,p2:11,s1:21,s2:21,result:"Draw",note:"Sample badminton draw"},
-    {sport:"BAD",date:"2026-10-04",format:"Doubles",p1:3,p2:11,p3:4,p4:8,s1:21,s2:14,result:"Side 1 Win",note:"Sample badminton doubles"},
-    {sport:"BAD",date:"2026-10-05",format:"Singles",p1:10,p2:2,s1:16,s2:21,result:"Side 2 Win",note:"Sample badminton singles"},
-    {sport:"LT",date:"2026-10-01",format:"Singles",p1:5,p2:6,s1:6,s2:4,result:"Side 1 Win",note:"Sample lawn tennis singles"},
-    {sport:"LT",date:"2026-10-02",format:"Doubles",p1:1,p2:4,p3:7,p4:12,s1:6,s2:6,result:"Draw",note:"Sample lawn tennis doubles draw"},
-    {sport:"LT",date:"2026-10-03",format:"Singles",p1:9,p2:2,s1:3,s2:6,result:"Side 2 Win",note:"Sample lawn tennis singles"},
-    {sport:"LT",date:"2026-10-04",format:"Doubles",p1:5,p2:6,p3:4,p4:9,s1:7,s2:5,result:"Side 1 Win",note:"Sample lawn tennis doubles"}
+    {sport:"TT",date:"2026-10-01",format:"Singles",p1:1,p2:2,result:"Side 1 Win",note:"Sample TT singles win"},
+    {sport:"TT",date:"2026-10-02",format:"Singles",p1:3,p2:4,result:"Side 2 Win",note:"Sample TT singles win for side 2"},
+    {sport:"TT",date:"2026-10-03",format:"Doubles",p1:1,p2:5,p3:2,p4:6,result:"Side 1 Win",note:"Sample TT doubles"},
+    {sport:"TT",date:"2026-10-04",format:"Singles",p1:9,p2:11,result:"Draw",note:"Sample TT draw"},
+    {sport:"TT",date:"2026-10-05",format:"Doubles",p1:3,p2:8,p3:4,p4:9,result:"Side 2 Win",note:"Sample TT doubles loss"},
+    {sport:"TT",date:"2026-10-06",format:"Singles",p1:1,p2:9,result:"Side 1 Win",note:"Sample TT singles"},
+    {sport:"PB",date:"2026-10-01",format:"Singles",p1:2,p2:3,result:"Side 1 Win",note:"Sample pickleball singles"},
+    {sport:"PB",date:"2026-10-02",format:"Doubles",p1:1,p2:4,p3:6,p4:7,result:"Side 1 Win",note:"Sample pickleball doubles"},
+    {sport:"PB",date:"2026-10-03",format:"Singles",p1:7,p2:10,result:"Side 2 Win",note:"Sample pickleball singles"},
+    {sport:"PB",date:"2026-10-04",format:"Doubles",p1:2,p2:12,p3:3,p4:9,result:"Draw",note:"Sample pickleball doubles draw"},
+    {sport:"PB",date:"2026-10-05",format:"Singles",p1:6,p2:12,result:"Side 1 Win",note:"Sample pickleball singles"},
+    {sport:"BAD",date:"2026-10-01",format:"Singles",p1:1,p2:3,result:"Side 1 Win",note:"Sample badminton singles"},
+    {sport:"BAD",date:"2026-10-02",format:"Doubles",p1:2,p2:4,p3:9,p4:10,result:"Side 2 Win",note:"Sample badminton doubles"},
+    {sport:"BAD",date:"2026-10-03",format:"Singles",p1:8,p2:11,result:"Draw",note:"Sample badminton draw"},
+    {sport:"BAD",date:"2026-10-04",format:"Doubles",p1:3,p2:11,p3:4,p4:8,result:"Side 1 Win",note:"Sample badminton doubles"},
+    {sport:"BAD",date:"2026-10-05",format:"Singles",p1:10,p2:2,result:"Side 2 Win",note:"Sample badminton singles"},
+    {sport:"LT",date:"2026-10-01",format:"Singles",p1:5,p2:6,result:"Side 1 Win",note:"Sample lawn tennis singles"},
+    {sport:"LT",date:"2026-10-02",format:"Doubles",p1:1,p2:4,p3:7,p4:12,result:"Draw",note:"Sample lawn tennis doubles draw"},
+    {sport:"LT",date:"2026-10-03",format:"Singles",p1:9,p2:2,result:"Side 2 Win",note:"Sample lawn tennis singles"},
+    {sport:"LT",date:"2026-10-04",format:"Doubles",p1:5,p2:6,p3:4,p4:9,result:"Side 1 Win",note:"Sample lawn tennis doubles"}
   ];
 
   const players = playerMap_(ss,false);
@@ -837,8 +827,7 @@ function loadSampleData_(ss) {
         "Match Date":m.date, Format:m.format,
         "Player 1 ID":demoPlayers[m.p1-1].id, "Player 2 ID":demoPlayers[m.p2-1].id,
         "Player 3 ID":m.p3 ? demoPlayers[m.p3-1].id : "",
-        "Player 4 ID":m.p4 ? demoPlayers[m.p4-1].id : "",
-        "Score 1":m.s1, "Score 2":m.s2, Result:m.result,
+        "Player 4 ID":m.p4 ? demoPlayers[m.p4-1].id : "", Result:m.result,
         Status:"Completed", Notes:"SAMPLE DATA — "+m.note
       };
       writeMatch_(ss,sport,input,players);

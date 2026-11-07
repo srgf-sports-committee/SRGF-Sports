@@ -1097,7 +1097,6 @@
     renderPlayerViewChart();
   });
   $("#refresh-player-view").addEventListener("click", refreshPlayerView);
-  $("#player-view-export").addEventListener("click", exportPlayerViewHistory);
 
   function playerAge(profile) {
     if (!profile) return null;

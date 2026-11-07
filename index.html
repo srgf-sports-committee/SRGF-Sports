@@ -196,7 +196,7 @@
         <div class="admin-results-grid">
           <section class="admin-results-card">
             <div class="admin-card-heading"><div><h3 id="admin-match-form-title">Add a match result</h3><p>Player IDs must already exist and be active in SPORTS_PLAYERS.</p></div><button class="refresh-button" id="admin-new-match" type="button">＋ New</button></div>
-            <p class="admin-inline-note">To edit a result, select <strong>Edit</strong> beside a match in the history below. Elo is calculated from the result, not the optional scores.</p>
+            <p class="admin-inline-note">To edit a result, select <strong>Edit</strong> beside a match in the history below. Elo is calculated only from the selected match result. Scores are not recorded.</p>
             <form id="admin-match-form">
               <div class="admin-form-grid">
                 <label>Sport<select id="admin-sport" required><option value="TT">Table Tennis (TT)</option><option value="PB">Pickleball (PB)</option><option value="BAD">Badminton (Bad)</option><option value="LT">Lawn Tennis (LT)</option></select></label>
@@ -204,13 +204,11 @@
                 <label>Match date<input id="admin-match-date" type="date" required></label>
                 <label>Format<select id="admin-format" required><option>Singles</option><option>Doubles</option></select></label>
                 <label>Status<select id="admin-status" required><option>Completed</option><option>Pending</option></select></label>
-                <label>Result<select id="admin-result"><option value="">Choose result / derive from scores</option><option>Side 1 Win</option><option>Side 2 Win</option><option>Draw</option></select></label>
+                <label>Result<select id="admin-result"><option value="">Choose result</option><option>Side 1 Win</option><option>Side 2 Win</option><option>Draw</option></select></label>
                 <label>Side 1 — Player 1 ID<select id="admin-p1" required><option value="">Loading players…</option></select></label>
                 <label>Opponent / Side 1 — Player 2 ID<select id="admin-p2" required><option value="">Loading players…</option></select></label>
                 <label id="admin-p3-wrap" class="admin-field-hidden">Side 2 — Player 1 ID<select id="admin-p3"><option value="">Select player…</option></select></label>
                 <label id="admin-p4-wrap" class="admin-field-hidden">Side 2 — Player 2 ID<select id="admin-p4"><option value="">Select player…</option></select></label>
-                <label>Side 1 score <span class="admin-label-hint">(optional)</span><input id="admin-score1" type="number" step="any" placeholder="Optional"></label>
-                <label>Side 2 score <span class="admin-label-hint">(optional)</span><input id="admin-score2" type="number" step="any" placeholder="Optional"></label>
                 <label class="admin-field-wide">Notes <span class="admin-label-hint">(optional)</span><textarea id="admin-notes" rows="2" placeholder="Round, tournament or other notes"></textarea></label>
               </div>
               <div class="admin-form-actions"><button class="button button-dark" id="admin-save-match" type="submit">Save match result</button><span id="admin-entry-status" class="admin-status" role="status" aria-live="polite"></span></div>

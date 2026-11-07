@@ -99,11 +99,6 @@
     toggleDoubles();
     setStatus($("#admin-entry-status"), "", "");
   }
-  function deriveResult() {
-    const a = $("#admin-score1").value, b = $("#admin-score2").value;
-    if (a === "" || b === "") return "";
-    return Number(a) > Number(b) ? "Side 1 Win" : Number(a) < Number(b) ? "Side 2 Win" : "Draw";
-  }
   function rowMatch(m) {
     const code = normalizeSport(m.Sport || m.sport || m["Sport Code"] || m._sport);
     const isSingles = String(m.Format || "").toLowerCase() === "singles";
@@ -150,8 +145,6 @@
     $("#admin-p2").value = m["Player 2 ID"] || "";
     $("#admin-p3").value = m["Player 3 ID"] || "";
     $("#admin-p4").value = m["Player 4 ID"] || "";
-    $("#admin-score1").value = m["Score 1"] ?? "";
-    $("#admin-score2").value = m["Score 2"] ?? "";
     $("#admin-notes").value = m.Notes || "";
     $("#admin-match-form-title").textContent = "Edit match result";
     $("#admin-save-match").textContent = "Save changes";
@@ -192,7 +185,7 @@
   $("#admin-match-form").addEventListener("submit", async e => {
     e.preventDefault();
     if (!idToken) return setStatus($("#admin-entry-status"), "Sign in as an approved administrator first.", "error");
-    const result = $("#admin-result").value || deriveResult();
+    const result = $("#admin-result").value;
     const match = {
       "Match ID": $("#admin-match-id").value.trim(),
       "Match Date": $("#admin-match-date").value,
@@ -201,8 +194,6 @@
       "Player 2 ID": $("#admin-p2").value,
       "Player 3 ID": $("#admin-p3").value,
       "Player 4 ID": $("#admin-p4").value,
-      "Score 1": $("#admin-score1").value,
-      "Score 2": $("#admin-score2").value,
       Result: result,
       Status: $("#admin-status").value,
       Notes: $("#admin-notes").value.trim()
@@ -376,15 +367,15 @@
 
   $("#admin-download-template").addEventListener("click", () => {
     const wb = XLSX.utils.book_new();
-    const headers = ["Match ID","Match Date","Sport","Format","Player 1 ID","Player 2 ID","Player 3 ID","Player 4 ID","Score 1","Score 2","Result","Status","Notes"];
+    const headers = ["Match ID","Match Date","Sport","Format","Player 1 ID","Player 2 ID","Player 3 ID","Player 4 ID","Result","Status","Notes"];
     const results = XLSX.utils.aoa_to_sheet([headers]);
     XLSX.utils.book_append_sheet(wb,results,"Results");
     // Keep the illustrative row on a separate sheet so it is never parsed
     // as an upload row when the user selects this workbook.
     const example = XLSX.utils.aoa_to_sheet([
       headers,
-      ["EXAMPLE-S-001","2026-11-01","TT","Singles","SRGF0001","","SRGF0002","","","","Side 1 Win","Completed","SINGLES example: Player 1 vs Player 3. Replace with real match details and active Player IDs"],
-      ["EXAMPLE-D-001","2026-11-02","TT","Doubles","SRGF0001","SRGF0002","SRGF0003","SRGF0004","","","Side 2 Win","Completed","DOUBLES example: Side 1 = Players 1+2; Side 2 = Players 3+4. Replace with real match details and active Player IDs"]
+      ["EXAMPLE-S-001","2026-11-01","TT","Singles","SRGF0001","","SRGF0002","","Side 1 Win","Completed","SINGLES example: Player 1 vs Player 3. Replace with real match details and active Player IDs"],
+      ["EXAMPLE-D-001","2026-11-02","TT","Doubles","SRGF0001","SRGF0002","SRGF0003","SRGF0004","Side 2 Win","Completed","DOUBLES example: Side 1 = Players 1+2; Side 2 = Players 3+4. Replace with real match details and active Player IDs"]
     ]);
     XLSX.utils.book_append_sheet(wb,example,"Example Data");
     const guide = XLSX.utils.aoa_to_sheet([
@@ -397,7 +388,7 @@
       ["Doubles: Player 1 ID and Player 2 ID are Side 1 (one team); Player 3 ID and Player 4 ID are Side 2 (the other team). All four IDs are required."],
       ["All Player IDs must already exist and be active in SPORTS_PLAYERS. Members are never created automatically."],
       ["Result: Side 1 Win, Side 2 Win or Draw. Status: Completed or Pending."],
-      ["You may leave Result blank if both scores are supplied; the system may derive the result from scores."],
+      ["Result is required: Side 1 Win, Side 2 Win or Draw. ELO is calculated only from this result; no scores are collected."],
       ["All rows are validated by the backend before import. If any row has an error, correct the file and upload it again."]
     ]);
     XLSX.utils.book_append_sheet(wb,guide,"Instructions");

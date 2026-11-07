@@ -237,7 +237,7 @@
     });
   }
   function validateUploadPreview() {
-    const required = ["Match ID","Match Date","Sport","Format","Player 1 ID","Player 2 ID","Result","Status"];
+    const required = ["Match ID","Match Date","Sport","Format","Player 1 ID","Player 3 ID","Result","Status"];
     const missing = required.filter(h => stagedRows.length && !(h in stagedRows[0]));
     const ids = new Set(), duplicates = [];
     stagedRows.forEach(r => {
@@ -247,7 +247,12 @@
       else ids.add(id);
     });
     const invalidSports = stagedRows.filter(r => !["TT","PB","BAD","BADMINTON","PICKLEBALL","LT","LAWN TENNIS","TABLE TENNIS"].includes(normalizeSport(r.Sport))).map(r=>"row "+r.__rowNumber+" has an unsupported Sport");
-    const errors = [...missing.map(h=>"missing column "+h),...duplicates,...invalidSports];
+    const invalidFormats = stagedRows.filter(r => !["SINGLES","DOUBLES"].includes(String(r.Format || "").trim().toUpperCase())).map(r=>"row "+r.__rowNumber+" must use Singles or Doubles");
+    const missingPlayers = stagedRows.filter(r => {
+      const format = String(r.Format || "").trim().toUpperCase();
+      return !String(r["Player 1 ID"] || "").trim() || !String(r["Player 3 ID"] || "").trim() || (format === "DOUBLES" && (!String(r["Player 2 ID"] || "").trim() || !String(r["Player 4 ID"] || "").trim()));
+    }).map(r=>"row "+r.__rowNumber+" is missing a player ID (Singles needs Player 1 and Player 3; Doubles needs all four IDs)");
+    const errors = [...missing.map(h=>"missing column "+h),...duplicates,...invalidSports,...invalidFormats,...missingPlayers];
     const preview = $("#admin-upload-preview");
     if (errors.length) {
       preview.innerHTML = '<div class="admin-upload-errors"><strong>Please correct the file before importing:</strong><ul>' + errors.slice(0,20).map(e=>'<li>'+esc(e)+'</li>').join("") + '</ul></div>';
@@ -255,7 +260,7 @@
       $("#admin-confirm-upload").disabled = true;
       return false;
     }
-    preview.innerHTML = '<p class="admin-preview-summary">Ready to review: <strong>'+stagedRows.length+'</strong> row(s). Previewing up to 10 rows.</p><div class="admin-table-wrap"><table><thead><tr><th>Row</th><th>Sport</th><th>Match ID</th><th>Date</th><th>Format</th><th>Player IDs</th><th>Result</th></tr></thead><tbody>' + stagedRows.slice(0,10).map(r=>'<tr><td>'+r.__rowNumber+'</td><td>'+esc(r.Sport)+'</td><td>'+esc(r["Match ID"])+'</td><td>'+esc(r["Match Date"])+'</td><td>'+esc(r.Format)+'</td><td>'+esc([r["Player 1 ID"],r["Player 2 ID"],r["Player 3 ID"],r["Player 4 ID"]].filter(Boolean).join(" / "))+'</td><td>'+esc(r.Result)+'</td></tr>').join("") + '</tbody></table></div>' + (stagedRows.length>10?'<p class="admin-small-help">Showing first 10 rows; all '+stagedRows.length+' rows will be submitted for server-side validation.</p>':"");
+    preview.innerHTML = '<p class="admin-preview-summary">Ready to review: <strong>'+stagedRows.length+'</strong> row(s). Previewing up to 10 rows.</p><div class="admin-table-wrap"><table><thead><tr><th>Row</th><th>Sport</th><th>Match ID</th><th>Date</th><th>Format</th><th>Side 1</th><th>Side 2</th><th>Result</th></tr></thead><tbody>' + stagedRows.slice(0,10).map(r=>{const doubles=String(r.Format).trim().toUpperCase()==="DOUBLES";const side1=doubles?[r["Player 1 ID"],r["Player 2 ID"]].filter(Boolean).join(" / "):r["Player 1 ID"];const side2=doubles?[r["Player 3 ID"],r["Player 4 ID"]].filter(Boolean).join(" / "):r["Player 3 ID"];return '<tr><td>'+r.__rowNumber+'</td><td>'+esc(r.Sport)+'</td><td>'+esc(r["Match ID"])+'</td><td>'+esc(r["Match Date"])+'</td><td>'+esc(r.Format)+'</td><td>'+esc(side1)+'</td><td>'+esc(side2)+'</td><td>'+esc(r.Result)+'</td></tr>';}).join("") + '</tbody></table></div>' + (stagedRows.length>10?'<p class="admin-small-help">Showing first 10 rows; all '+stagedRows.length+' rows will be submitted for server-side validation.</p>':"");
     $("#admin-confirm-upload").disabled = !idToken;
     return true;
   }
@@ -279,7 +284,19 @@
     button.disabled = true;
     setStatus($("#admin-upload-status"), "Server is validating all rows. No rows should be imported if validation fails.", "info");
     try {
-      const data = await post({action:"bulkimport",rows:stagedRows});
+      // In the upload template, Singles uses Player 1 and Player 3 so the
+      // two sides line up visually with the Doubles team columns (1&2 vs 3&4).
+      // Normalize Singles back to the backend's established P1-vs-P2 structure.
+      const rowsForImport = stagedRows.map(row => {
+        const normalized = {...row};
+        if (String(normalized.Format || "").trim().toUpperCase() === "SINGLES") {
+          normalized["Player 2 ID"] = normalized["Player 3 ID"];
+          normalized["Player 3 ID"] = "";
+          normalized["Player 4 ID"] = "";
+        }
+        return normalized;
+      });
+      const data = await post({action:"bulkimport",rows:rowsForImport});
       if (!data.ok) {
         const errors = (data.errors || []).map(x => "Row " + x.row + ": " + x.error).join(" • ");
         setStatus($("#admin-upload-status"), (data.error || "Import validation failed.") + (errors ? " " + errors : ""), "error");
@@ -366,7 +383,7 @@
     // as an upload row when the user selects this workbook.
     const example = XLSX.utils.aoa_to_sheet([
       headers,
-      ["EXAMPLE-001","2026-11-01","TT","Singles","SRGF0001","SRGF0002","","","","","Side 1 Win","Completed","Example only - replace with your actual match and active Player IDs"]
+      ["EXAMPLE-001","2026-11-01","TT","Singles","SRGF0001","","SRGF0002","","","","Side 1 Win","Completed","Example only - replace with your actual match and active Player IDs"]
     ]);
     XLSX.utils.book_append_sheet(wb,example,"Example Data");
     const guide = XLSX.utils.aoa_to_sheet([
@@ -375,7 +392,8 @@
       ["See the Example Data sheet for one illustrative completed singles match. Copy the example row into Results only after replacing the sample Match ID, date and Player IDs with real values."],
       ["Match ID is required and must be unique within the uploaded file. Existing Match IDs update matching records; new IDs create matches."],
       ["Sport values: TT, PB, Bad or LT. Format values: Singles or Doubles."],
-      ["Player 1 ID and Player 2 ID are required. Doubles also requires Player 3 ID and Player 4 ID."],
+      ["Singles: enter the two opponents in Player 1 ID and Player 3 ID; leave Player 2 ID and Player 4 ID blank."],
+      ["Doubles: Player 1 ID and Player 2 ID are Side 1 (one team); Player 3 ID and Player 4 ID are Side 2 (the other team). All four IDs are required."],
       ["All Player IDs must already exist and be active in SPORTS_PLAYERS. Members are never created automatically."],
       ["Result: Side 1 Win, Side 2 Win or Draw. Status: Completed or Pending."],
       ["You may leave Result blank if both scores are supplied; the system may derive the result from scores."],

@@ -194,7 +194,7 @@
         </section>
         <div class="admin-results-grid">
           <section class="admin-results-card">
-            <div class="admin-card-heading"><div><h3 id="admin-match-form-title">Add a match result</h3><p>Player IDs must already exist and be active in SPORTS_PLAYERS.</p></div><button class="refresh-button" id="admin-new-match" type="button">＋ New</button></div>
+            <div class="admin-card-heading"><div><h3 id="admin-match-form-title">Add a match result</h3><p>SRGF IDs must already exist and be active in SPORTS_PLAYERS.</p></div><button class="refresh-button" id="admin-new-match" type="button">＋ New</button></div>
             <p class="admin-inline-note">To edit a result, select <strong>Edit</strong> beside a match in the history below. Saving a completed match automatically recalculates that sport from its full match history. Scores are not recorded.</p>
             <form id="admin-match-form">
               <div class="admin-form-grid">
@@ -215,7 +215,7 @@
           </section>
           <section class="admin-results-card">
             <div class="admin-card-heading"><div><h3>Mass upload results</h3><p>One file can contain matches from all four sports.</p></div><button class="refresh-button" id="admin-download-template" type="button">Download template</button></div>
-            <div class="admin-upload-instructions"><strong>Before importing</strong><ul><li>Use the template headings without renaming them.</li><li>Include a unique Match ID for every row; existing IDs update matching records.</li><li>Use registered, active Player IDs. Unknown IDs are rejected and never created automatically.</li><li>The whole batch is validated before it is saved. Correct any errors and upload again.</li></ul></div>
+            <div class="admin-upload-instructions"><strong>Before importing</strong><ul><li>Use the template headings without renaming them.</li><li>Include a unique Match ID for every row; existing IDs update matching records.</li><li>Use registered, active SRGF IDs. Unknown IDs are rejected and never created automatically.</li><li>The whole batch is validated before it is saved. Correct any errors and upload again.</li></ul></div>
             <label class="admin-upload-field">Choose Excel or CSV file<input id="admin-upload-file" type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
             <div id="admin-upload-preview"></div>
             <div class="admin-form-actions"><button class="button button-dark" id="admin-confirm-upload" type="button" disabled>Validate and import batch</button><span id="admin-upload-status" class="admin-status" role="status" aria-live="polite"></span></div>

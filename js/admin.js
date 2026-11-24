@@ -60,7 +60,7 @@
           return {id, name};
         })
         .filter(p => p.id && (!unavailable.has(p.id) || p.id === selected[sel]));
-      select.innerHTML = '<option value="">Select Player ID…</option>' + options.map(p =>
+      select.innerHTML = '<option value="">Select SRGF ID…</option>' + options.map(p =>
         '<option value="' + esc(p.id) + '">' + esc(p.id + (p.name ? " — " + p.name : "")) + '</option>'
       ).join("");
       select.value = selected[sel];
@@ -288,7 +288,7 @@
     const missingPlayers = stagedRows.filter(r => {
       const format = String(r.Format || "").trim().toUpperCase();
       return !String(r["Player 1 ID"] || "").trim() || !String(r["Player 3 ID"] || "").trim() || (format === "DOUBLES" && (!String(r["Player 2 ID"] || "").trim() || !String(r["Player 4 ID"] || "").trim()));
-    }).map(r=>"row "+r.__rowNumber+" is missing a player ID (Singles needs Player 1 and Player 3; Doubles needs all four IDs)");
+    }).map(r=>"row "+r.__rowNumber+" is missing an SRGF ID (Singles needs Player 1 and Player 3; Doubles needs all four IDs)");
     const errors = [...missing.map(h=>"missing column "+h),...duplicates,...invalidSports,...invalidFormats,...missingPlayers];
     const preview = $("#admin-upload-preview");
     if (errors.length) {
@@ -425,19 +425,19 @@
     // as an upload row when the user selects this workbook.
     const example = XLSX.utils.aoa_to_sheet([
       headers,
-      ["EXAMPLE-S-001","2026-11-01","TT","Singles","SRGF0001","","SRGF0002","","Side 1 Win","Completed","SINGLES example: Player 1 vs Player 3. Replace with real match details and active Player IDs"],
+      ["EXAMPLE-S-001","2026-11-01","TT","Singles","SRGF0001","","SRGF0002","","Side 1 Win","Completed","SINGLES example: Player 1 vs Player 3. Replace with real match details and active SRGF IDs"],
       ["EXAMPLE-D-001","2026-11-02","TT","Doubles","SRGF0001","SRGF0002","SRGF0003","SRGF0004","Side 2 Win","Completed","DOUBLES example: Side 1 = Players 1+2; Side 2 = Players 3+4. Replace with real match details and active Player IDs"]
     ]);
     XLSX.utils.book_append_sheet(wb,example,"Example Data");
     const guide = XLSX.utils.aoa_to_sheet([
       ["SRGF Sports bulk match upload instructions"],
       ["Enter your real match rows in the Results sheet. The upload reads the first (Results) sheet only."],
-      ["See the Example Data sheet for one completed Singles example and one completed Doubles example. Copy only the relevant example row(s) into Results after replacing the sample Match IDs, dates and Player IDs with real values."],
+      ["See the Example Data sheet for one completed Singles example and one completed Doubles example. Copy only the relevant example row(s) into Results after replacing the sample Match IDs, dates and SRGF IDs with real values."],
       ["Match ID is required and must be unique within the uploaded file. Existing Match IDs update matching records; new IDs create matches."],
       ["Sport values: TT, PB, Bad or LT. Format values: Singles or Doubles."],
       ["Singles: enter the two opponents in Player 1 ID and Player 3 ID; leave Player 2 ID and Player 4 ID blank."],
       ["Doubles: Player 1 ID and Player 2 ID are Side 1 (one team); Player 3 ID and Player 4 ID are Side 2 (the other team). All four IDs are required."],
-      ["All Player IDs must already exist and be active in SPORTS_PLAYERS. Members are never created automatically."],
+      ["All SRGF IDs must already exist and be active in SPORTS_PLAYERS. Members are never created automatically."],
       ["Result: Side 1 Win, Side 2 Win or Draw. Status: Completed or Pending."],
       ["Result is required: Side 1 Win, Side 2 Win or Draw. ELO is calculated only from this result; no scores are collected."],
       ["All rows are validated by the backend before import. If any row has an error, correct the file and upload it again."]

@@ -623,7 +623,7 @@
       ? bestSport.name + " (" + (bestSport.format === "Singles" ? "S" : "D") + ")"
       : "Never played";
     const details = [
-      ["Player ID", playerId],
+      ["SRGF ID", playerId],
       ["Gender", gender],
       ["Age", age === null ? "Not provided" : String(age)],
       ["Flat No", field(profile, "Flat No", "Flat Number", "Flat") || "Not provided"],
@@ -975,7 +975,7 @@
     const players=new Map(playerViewPlayerList());
     const sportNames={TT:"Table Tennis",PB:"Pickleball",BAD:"Badminton",LT:"Lawn Tennis"};
     const sportCodes=["TT","PB","BAD","LT"];
-    const exportHeaders=["Match Date","Player Name","Player ID","Format","Match ID","Opponent(s)","Result","Elo Before","Elo Change","Elo After","Rank Before","Rank After","Recorded At"];
+    const exportHeaders=["Match Date","Player Name","SRGF ID","Format","Match ID","Opponent(s)","Result","Elo Before","Elo Change","Elo After","Rank Before","Rank After","Recorded At"];
     const workbook=XLSX.utils.book_new();
     sportCodes.forEach(code=>{
       ["Singles","Doubles"].forEach(format=>{
@@ -1343,7 +1343,7 @@
     }).join("");
 
     const headers = isAllSports
-      ? '<th>Rank</th><th>Player ID</th><th>Player</th><th>Sports</th><th>Gender</th><th>Age</th><th>Sports Played</th><th>Average Elo</th><th>Matches</th><th>Wins</th><th>Losses</th><th>Draws</th>'
+      ? '<th>Rank</th><th>SRGF ID</th><th>Player</th><th>Sports</th><th>Gender</th><th>Age</th><th>Sports Played</th><th>Average Elo</th><th>Matches</th><th>Wins</th><th>Losses</th><th>Draws</th>'
       : '<th>Rank</th><th>Player ID</th><th>Player</th><th>Sports</th><th>Gender</th><th>Age</th><th>' + escapeHtml(format) + ' Elo</th><th>Matches</th><th>Wins</th><th>Losses</th><th>Draws</th>';
     const description = isAllSports
       ? '<p class="category-ranking-note">Combined ranking: players are ranked by their average ' + escapeHtml(format) + ' Elo across the sports they have a rating in. Sports Played shows how many sports contribute to the average.</p>'

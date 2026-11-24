@@ -426,7 +426,7 @@
     const example = XLSX.utils.aoa_to_sheet([
       headers,
       ["EXAMPLE-S-001","2026-11-01","TT","Singles","SRGF0001","","SRGF0002","","Side 1 Win","Completed","SINGLES example: Player 1 vs Player 3. Replace with real match details and active SRGF IDs"],
-      ["EXAMPLE-D-001","2026-11-02","TT","Doubles","SRGF0001","SRGF0002","SRGF0003","SRGF0004","Side 2 Win","Completed","DOUBLES example: Side 1 = Players 1+2; Side 2 = Players 3+4. Replace with real match details and active Player IDs"]
+      ["EXAMPLE-D-001","2026-11-02","TT","Doubles","SRGF0001","SRGF0002","SRGF0003","SRGF0004","Side 2 Win","Completed","DOUBLES example: Side 1 = Players 1+2; Side 2 = Players 3+4. Replace with real match details and active SRGF IDs"]
     ]);
     XLSX.utils.book_append_sheet(wb,example,"Example Data");
     const guide = XLSX.utils.aoa_to_sheet([
